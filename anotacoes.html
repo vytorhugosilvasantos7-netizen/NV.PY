@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NavyPY | Consultor Financeiro Inteligente</title>
+
+    <!-- Ícones FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <!-- Chart.js para o Gráfico Roxo -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="stylesheet" href="anotacoes-style.css">
+</head>
+<body>
+
+    <!-- Fundo de Ondas do Mar -->
+    <canvas id="waveCanvas"></canvas>
+
+    <div class="app-layout">
+        
+        <!-- Header Principal -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fa-solid fa-bolt"></i>
+                <h2>NV<span>PY</span></h2>
+            </div>
+            <div class="user-status">
+                <span class="ai-badge">
+                    <i class="fa-solid fa-user-tie"></i> Consultor CFO Ativo
+                </span>
+            </div>
+        </header>
+
+        <!-- Conteúdo Central -->
+        <main class="content-container">
+
+            <!-- SEÇÃO SUPERIOR: GRÁFICO ROXO -->
+            <section class="chart-section">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3><i class="fa-solid fa-chart-pie"></i> Balanço Financeiro Geral</h3>
+                        <span class="total-display" id="totalDisplay">Total Registrado: R$ 0,00</span>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="financeChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SEÇÃO CENTRAL: CONSOLE DE CONSULTORIA & LANÇAMENTOS COM A IA -->
+            <section class="ai-chat-section">
+                
+                <!-- Caixa de Diálogo do Consultor IA -->
+                <div class="ai-response-box" id="aiResponseBox">
+                    <div class="ai-avatar">
+                        <i class="fa-solid fa-brain-circuit"></i>
+                    </div>
+                    <div class="ai-message-content">
+                        <h4>Olá! seja bem vindo(a) sou a sua IA, O que posso te ajuda?</h4>
+                        <p id="aiTextResponse">
+                            Digite seu gasto ou investimento, selecione a categoria abaixo se desejar, e eu lanço diretamente no gráfico com uma análise técnica para você!
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Campo de Entrada com Opções/Tags de Categoria Logo Abaixo -->
+                <div class="ai-input-container">
+                    
+                    <div class="ai-input-bar">
+                        <input 
+                            type="text" 
+                            id="textInput" 
+                            placeholder="Ex: R$ 850 insumos para empresa, R$ 120 combustível..."
+                            autocomplete="off">
+
+                        <!-- Botão Enviar -->
+                        <button type="button" class="btn-send" id="btnSend">
+                            <span>Lançar</span>
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </div>
+
+                    <!-- OPÇÕES RÁPIDAS DE CATEGORIA EMBAIXO DO CAMPO -->
+                    <div class="category-selector" id="categorySelector">
+                        <span class="selector-label">Destinar para:</span>
+                        <button type="button" class="chip-btn active" data-category="auto" data-fullname="Auto (IA)">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Auto (IA)
+                        </button>
+                        <button type="button" class="chip-btn" data-category="credito" data-fullname="Cartão de Crédito">
+                            <i class="fa-solid fa-credit-card"></i> Crédito
+                        </button>
+                        <button type="button" class="chip-btn" data-category="debito" data-fullname="Cartão de Débito">
+                            <i class="fa-solid fa-wallet"></i> Débito
+                        </button>
+                        <button type="button" class="chip-btn" data-category="alimentacao" data-fullname="Alimentação">
+                            <i class="fa-solid fa-utensils"></i> Alimentação
+                        </button>
+                        <button type="button" class="chip-btn" data-category="dinheiro" data-fullname="Dinheiro">
+                            <i class="fa-solid fa-money-bill-wave"></i> Dinheiro
+                        </button>
+                        <button type="button" class="chip-btn" data-category="investimento" data-fullname="Investimentos">
+                            <i class="fa-solid fa-chart-line"></i> Investimentos
+                        </button>
+                        
+                        <!-- BOTÃO PARA ADICIONAR CATEGORIA PERSONALIZADA -->
+                        <button type="button" class="chip-btn btn-add-category" id="btnAddCategory">
+                            <i class="fa-solid fa-plus"></i> Adicionar
+                        </button>
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- SEÇÃO INFERIOR: HISTÓRICO DE REGISTROS -->
+            <section class="history-section">
+                <div class="history-header">
+                    <h3><i class="fa-solid fa-list-check"></i> Extrato de Registros</h3>
+                    <!-- FILTRO POR CATEGORIA -->
+                    <div class="history-filter-wrapper">
+                        <i class="fa-solid fa-filter filter-icon"></i>
+                        <select id="historyFilter" class="history-filter-select">
+                            <option value="all">Todas as categorias</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="history-list" id="historyList">
+                    <div class="empty-state">Nenhum lançamento realizado até o momento.</div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- MODAL / POPUP PARA CRIAR NOVA CATEGORIA -->
+    <div class="modal-overlay" id="categoryModal">
+        <div class="modal-card">
+            <h3><i class="fa-solid fa-folder-plus"></i> Criar Nova Categoria</h3>
+            <p>Digite o nome do destino para suas finanças (Ex: Empresa, Carro, Faculdade, etc.):</p>
+            <input type="text" id="newCategoryInput" placeholder="Ex: Empresa" maxlength="20">
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" id="btnCancelCategory">Cancelar</button>
+                <button type="button" class="btn-confirm" id="btnConfirmCategory">Criar Categoria</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="anotacoes.js"></script>
+</body>
+</html>
