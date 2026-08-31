@@ -5,21 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NavyPY | Consultor Financeiro Inteligente</title>
 
-    <!-- Ícones FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <!-- Chart.js para o Gráfico Roxo -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <link rel="stylesheet" href="anotacoes-style.css">
 </head>
 <body>
 
-    <!-- Fundo de Ondas do Mar -->
     <canvas id="waveCanvas"></canvas>
 
     <div class="app-layout">
-        
-        <!-- Header Principal -->
+
         <header class="app-header">
             <div class="logo">
                 <i class="fa-solid fa-bolt"></i>
@@ -32,10 +28,8 @@
             </div>
         </header>
 
-        <!-- Conteúdo Central -->
         <main class="content-container">
 
-            <!-- SEÇÃO SUPERIOR: GRÁFICO ROXO -->
             <section class="chart-section">
                 <div class="chart-card">
                     <div class="chart-header">
@@ -48,40 +42,27 @@
                 </div>
             </section>
 
-            <!-- SEÇÃO CENTRAL: CONSOLE DE CONSULTORIA & LANÇAMENTOS COM A IA -->
+            <!-- CONSOLE DE CONSULTORIA — agora um feed de conversa real -->
             <section class="ai-chat-section">
-                
-                <!-- Caixa de Diálogo do Consultor IA -->
-                <div class="ai-response-box" id="aiResponseBox">
-                    <div class="ai-avatar">
-                        <i class="fa-solid fa-brain-circuit"></i>
-                    </div>
-                    <div class="ai-message-content">
-                        <h4>Olá! seja bem vindo(a) sou a sua IA, O que posso te ajuda?</h4>
-                        <p id="aiTextResponse">
-                            Digite seu gasto ou investimento, selecione a categoria abaixo se desejar, e eu lanço diretamente no gráfico com uma análise técnica para você!
-                        </p>
-                    </div>
-                </div>
 
-                <!-- Campo de Entrada com Opções/Tags de Categoria Logo Abaixo -->
+                <div class="ai-chat-feed" id="aiChatFeed" aria-live="polite"></div>
+
                 <div class="ai-input-container">
-                    
-                    <div class="ai-input-bar">
-                        <input 
-                            type="text" 
-                            id="textInput" 
-                            placeholder="Ex: R$ 850 insumos para empresa, R$ 120 combustível..."
-                            autocomplete="off">
 
-                        <!-- Botão Enviar -->
+                    <div class="ai-input-bar">
+                        <input
+                            type="text"
+                            id="textInput"
+                            placeholder="Ex: R$ 850 insumos para empresa, R$ 120 combustível..."
+                            autocomplete="off"
+                            maxlength="140">
+
                         <button type="button" class="btn-send" id="btnSend">
                             <span>Lançar</span>
                             <i class="fa-solid fa-paper-plane"></i>
                         </button>
                     </div>
 
-                    <!-- OPÇÕES RÁPIDAS DE CATEGORIA EMBAIXO DO CAMPO -->
                     <div class="category-selector" id="categorySelector">
                         <span class="selector-label">Destinar para:</span>
                         <button type="button" class="chip-btn active" data-category="auto" data-fullname="Auto (IA)">
@@ -96,14 +77,22 @@
                         <button type="button" class="chip-btn" data-category="alimentacao" data-fullname="Alimentação">
                             <i class="fa-solid fa-utensils"></i> Alimentação
                         </button>
+                        <button type="button" class="chip-btn" data-category="transporte" data-fullname="Transporte">
+                            <i class="fa-solid fa-car"></i> Transporte
+                        </button>
+                        <button type="button" class="chip-btn" data-category="moradia" data-fullname="Moradia">
+                            <i class="fa-solid fa-house"></i> Moradia
+                        </button>
                         <button type="button" class="chip-btn" data-category="dinheiro" data-fullname="Dinheiro">
                             <i class="fa-solid fa-money-bill-wave"></i> Dinheiro
                         </button>
                         <button type="button" class="chip-btn" data-category="investimento" data-fullname="Investimentos">
                             <i class="fa-solid fa-chart-line"></i> Investimentos
                         </button>
-                        
-                        <!-- BOTÃO PARA ADICIONAR CATEGORIA PERSONALIZADA -->
+                        <button type="button" class="chip-btn" data-category="negocios" data-fullname="Negócios">
+                            <i class="fa-solid fa-briefcase"></i> Negócios
+                        </button>
+
                         <button type="button" class="chip-btn btn-add-category" id="btnAddCategory">
                             <i class="fa-solid fa-plus"></i> Adicionar
                         </button>
@@ -113,11 +102,9 @@
 
             </section>
 
-            <!-- SEÇÃO INFERIOR: HISTÓRICO DE REGISTROS -->
             <section class="history-section">
                 <div class="history-header">
                     <h3><i class="fa-solid fa-list-check"></i> Extrato de Registros</h3>
-                    <!-- FILTRO POR CATEGORIA -->
                     <div class="history-filter-wrapper">
                         <i class="fa-solid fa-filter filter-icon"></i>
                         <select id="historyFilter" class="history-filter-select">
@@ -133,7 +120,6 @@
         </main>
     </div>
 
-    <!-- MODAL / POPUP PARA CRIAR NOVA CATEGORIA -->
     <div class="modal-overlay" id="categoryModal">
         <div class="modal-card">
             <h3><i class="fa-solid fa-folder-plus"></i> Criar Nova Categoria</h3>

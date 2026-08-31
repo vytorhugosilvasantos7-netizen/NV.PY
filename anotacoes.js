@@ -1,6 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    /* 1. FUNDO DAS ONDAS DO MAR ROXO */
+    /* =========================================================
+       1. FUNDO DAS ONDAS
+       ========================================================= */
     const canvas = document.getElementById('waveCanvas');
     const ctx = canvas.getContext('2d');
 
@@ -44,14 +46,35 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     drawWaves();
 
-    /* 2. GERENCIAMENTO DE PERSISTÊNCIA (LOCALSTORAGE) */
+    /* =========================================================
+       2. CATEGORIAS PADRÃO E PERSISTÊNCIA
+       ========================================================= */
     const DEFAULT_CATEGORIES = [
         { name: 'Cartão de Crédito', slug: 'credito', color: '#a855f7', icon: 'fa-credit-card' },
         { name: 'Cartão de Débito', slug: 'debito', color: '#7c3aed', icon: 'fa-wallet' },
         { name: 'Alimentação', slug: 'alimentacao', color: '#c026d3', icon: 'fa-utensils' },
+        { name: 'Transporte', slug: 'transporte', color: '#38bdf8', icon: 'fa-car' },
+        { name: 'Moradia', slug: 'moradia', color: '#ec4899', icon: 'fa-house' },
         { name: 'Dinheiro', slug: 'dinheiro', color: '#6366f1', icon: 'fa-money-bill-wave' },
-        { name: 'Investimentos', slug: 'investimento', color: '#10b981', icon: 'fa-chart-line' }
+        { name: 'Investimentos', slug: 'investimento', color: '#10b981', icon: 'fa-chart-line' },
+        { name: 'Negócios', slug: 'negocios', color: '#f59e0b', icon: 'fa-briefcase' },
+        { name: 'Outros', slug: 'outros', color: '#6b7280', icon: 'fa-circle-question' }
     ];
+
+    /* Dicionário de palavras-chave por categoria — usado no reconhecimento
+       automático. Quanto mais termos, melhor a IA acerta o contexto real
+       de uma frase em português, em vez de só olhar a primeira palavra
+       que bater (como era antes). */
+    const CATEGORY_KEYWORDS = {
+        alimentacao: ['almoço', 'almoco', 'jantar', 'lanche', 'restaurante', 'mercado', 'supermercado', 'ifood', 'comida', 'padaria', 'feira', 'delivery', 'café', 'cafe', 'pizza', 'hamburguer'],
+        transporte: ['uber', '99', 'combustível', 'combustivel', 'gasolina', 'álcool', 'alcool', 'ônibus', 'onibus', 'metrô', 'metro', 'passagem', 'estacionamento', 'pedágio', 'pedagio', 'carro', 'moto', 'oficina'],
+        moradia: ['aluguel', 'condomínio', 'condominio', 'luz', 'energia', 'água', 'agua', 'internet', 'gás', 'gas', 'iptu', 'reforma', 'móveis', 'moveis'],
+        credito: ['crédito', 'credito', 'fatura', 'parcela', 'parcelado'],
+        debito: ['débito', 'debito'],
+        dinheiro: ['dinheiro', 'espécie', 'especie', 'pix'],
+        investimento: ['invest', 'fundo', 'ações', 'acoes', 'tesouro', 'cdb', 'poupança', 'poupanca', 'renda fixa', 'cripto', 'bitcoin'],
+        negocios: ['empresa', 'negócio', 'negocio', 'cliente', 'fornecedor', 'insumo', 'insumos', 'freelance', 'projeto', 'nota fiscal'],
+    };
 
     let categoriesList = JSON.parse(localStorage.getItem('finance_categories')) || DEFAULT_CATEGORIES;
     let transactions = JSON.parse(localStorage.getItem('finance_transactions')) || [];
@@ -61,7 +84,9 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('finance_transactions', JSON.stringify(transactions));
     }
 
-    /* 3. GRÁFICO (CHART.JS) */
+    /* =========================================================
+       3. GRÁFICO (CHART.JS)
+       ========================================================= */
     const ctxChart = document.getElementById('financeChart').getContext('2d');
 
     const financeChart = new Chart(ctxChart, {
@@ -87,7 +112,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    /* 4. ELEMENTOS DA INTERFACE */
+    /* =========================================================
+       4. ELEMENTOS DA INTERFACE
+       ========================================================= */
     const categorySelector = document.getElementById('categorySelector');
     const btnAddCategory = document.getElementById('btnAddCategory');
     const categoryModal = document.getElementById('categoryModal');
@@ -98,29 +125,88 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const textInput = document.getElementById('textInput');
     const btnSend = document.getElementById('btnSend');
-    const aiTextResponse = document.getElementById('aiTextResponse');
+    const chatFeed = document.getElementById('aiChatFeed');
     const historyList = document.getElementById('historyList');
     const totalDisplay = document.getElementById('totalDisplay');
 
     let selectedCategory = 'auto';
 
-    /* Renderização Inicial dos Chips Dinâmicos e Filtros */
+    /* =========================================================
+       5. FEED DE CONVERSA
+       ========================================================= */
+    function formatTime() {
+        const now = new Date();
+        return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    }
+
+    function addChatMessage(role, html, { showTime = true } = {}) {
+        const row = document.createElement('div');
+        row.className = `chat-row chat-${role}`;
+
+        const avatar = document.createElement('div');
+        avatar.className = 'chat-avatar';
+        avatar.innerHTML = role === 'ai'
+            ? '<i class="fa-solid fa-brain-circuit"></i>'
+            : '<i class="fa-solid fa-user"></i>';
+
+        const bubble = document.createElement('div');
+        bubble.className = 'chat-bubble';
+        bubble.innerHTML = html + (showTime ? `<span class="chat-meta">${formatTime()}</span>` : '');
+
+        row.appendChild(avatar);
+        row.appendChild(bubble);
+        chatFeed.appendChild(row);
+        chatFeed.scrollTop = chatFeed.scrollHeight;
+        return row;
+    }
+
+    function showTypingIndicator() {
+        const row = document.createElement('div');
+        row.className = 'chat-row chat-ai typing-row';
+        row.innerHTML = `
+            <div class="chat-avatar"><i class="fa-solid fa-brain-circuit"></i></div>
+            <div class="chat-bubble">
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+            </div>
+        `;
+        chatFeed.appendChild(row);
+        chatFeed.scrollTop = chatFeed.scrollHeight;
+        return row;
+    }
+
+    function replyWithDelay(html, delay = 500) {
+        const typingRow = showTypingIndicator();
+        setTimeout(() => {
+            typingRow.remove();
+            addChatMessage('ai', html);
+        }, delay);
+    }
+
+    /* Mensagem de boas-vindas ao carregar */
+    addChatMessage(
+        'ai',
+        '<h4 style="color:var(--purple-neon);font-size:0.92rem;margin-bottom:4px;">Olá! Sou sua IA financeira 👋</h4>' +
+        '<p>Digite um gasto (ex: <em>"R$ 45 almoço"</em>) e eu categorizo e lanço automaticamente. Também respondo dúvidas sobre organização financeira.</p>',
+        { showTime: false }
+    );
+
+    /* =========================================================
+       6. CHIPS DE CATEGORIA E FILTROS
+       ========================================================= */
     function renderCustomChipsAndFilters() {
-        // Remove chips customizados existentes antes de recriar
         const existingCustomChips = categorySelector.querySelectorAll('.custom-chip');
         existingCustomChips.forEach(c => c.remove());
 
-        // Limpa opções do filtro
         historyFilter.innerHTML = '<option value="all">Todas as categorias</option>';
 
         categoriesList.forEach(cat => {
-            // Adiciona Opção no Filtro
             const option = document.createElement('option');
             option.value = cat.name;
             option.textContent = cat.name;
             historyFilter.appendChild(option);
 
-            // Adiciona Chip apenas para categorias customizadas (que não estão padrão no HTML)
             const isDefault = DEFAULT_CATEGORIES.some(dc => dc.slug === cat.slug);
             if (!isDefault) {
                 const newChip = document.createElement('button');
@@ -147,24 +233,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    /* 5. ATUALIZAR GRÁFICO, TOTAL E EXTRATO */
+    /* =========================================================
+       7. GRÁFICO, TOTAL E EXTRATO
+       ========================================================= */
     function updateUI() {
-        // Cálculo de totais por categoria
         const categoryTotals = {};
         categoriesList.forEach(c => categoryTotals[c.name] = 0);
 
         let overallTotal = 0;
 
         transactions.forEach(t => {
-            if (categoryTotals[t.categoryName] !== undefined) {
-                categoryTotals[t.categoryName] += t.amount;
-            } else {
-                categoryTotals[t.categoryName] = t.amount;
-            }
+            categoryTotals[t.categoryName] = (categoryTotals[t.categoryName] || 0) + t.amount;
             overallTotal += t.amount;
         });
 
-        // Atualiza Gráfico
         const activeLabels = [];
         const activeData = [];
         const activeColors = [];
@@ -183,10 +265,8 @@ document.addEventListener('DOMContentLoaded', () => {
         financeChart.data.datasets[0].backgroundColor = activeColors;
         financeChart.update();
 
-        // Atualiza Total Geral
         totalDisplay.textContent = `Total Registrado: R$ ${overallTotal.toFixed(2).replace('.', ',')}`;
 
-        // Atualiza Extrato
         renderHistoryList();
     }
 
@@ -194,8 +274,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const filterValue = historyFilter.value;
         historyList.innerHTML = '';
 
-        const filteredTransactions = filterValue === 'all' 
-            ? transactions 
+        const filteredTransactions = filterValue === 'all'
+            ? transactions
             : transactions.filter(t => t.categoryName === filterValue);
 
         if (filteredTransactions.length === 0) {
@@ -224,11 +304,12 @@ document.addEventListener('DOMContentLoaded', () => {
             historyList.appendChild(item);
         });
 
-        // Adiciona eventos de exclusão
         document.querySelectorAll('.btn-delete-item').forEach(btn => {
-            btn.onclick = (e) => {
+            btn.onclick = () => {
                 const idToDelete = parseFloat(btn.getAttribute('data-id'));
-                deleteTransaction(idToDelete);
+                if (confirm('Excluir este lançamento do extrato?')) {
+                    deleteTransaction(idToDelete);
+                }
             };
         });
     }
@@ -237,10 +318,12 @@ document.addEventListener('DOMContentLoaded', () => {
         transactions = transactions.filter(t => t.id !== id);
         saveState();
         updateUI();
-        aiTextResponse.innerHTML = 'Lançamento removido do seu extrato e recalculado no gráfico com sucesso!';
+        replyWithDelay('Lançamento removido do seu extrato e recalculado no gráfico com sucesso!', 300);
     }
 
-    /* 6. MODAL & CATEGORIAS CUSTOMIZADAS */
+    /* =========================================================
+       8. MODAL & CATEGORIAS CUSTOMIZADAS
+       ========================================================= */
     btnAddCategory.addEventListener('click', () => {
         categoryModal.classList.add('active');
         newCategoryInput.focus();
@@ -265,18 +348,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!exists) {
             const randomColor = `hsl(${Math.floor(Math.random() * 60) + 250}, 80%, 65%)`;
-            categoriesList.push({
-                name: catName,
-                slug: slug,
-                color: randomColor,
-                icon: 'fa-briefcase'
-            });
+            categoriesList.push({ name: catName, slug, color: randomColor, icon: 'fa-briefcase' });
             saveState();
             renderCustomChipsAndFilters();
             updateUI();
         }
 
-        // Ativa o chip da recém-criada categoria
         const targetChip = categorySelector.querySelector(`[data-category="${slug}"]`);
         if (targetChip) targetChip.click();
 
@@ -284,7 +361,66 @@ document.addEventListener('DOMContentLoaded', () => {
         newCategoryInput.value = '';
     }
 
-    /* 7. ENVIAR E PROCESSAR REGISTROS */
+    /* =========================================================
+       9. PARSER DE VALOR EM REAIS
+       Trata "R$ 1.234,56", "1234.56", "120,50", "850" etc.
+       (a versão anterior quebrava em qualquer valor com milhar,
+       porque parava no primeiro separador que encontrasse)
+       ========================================================= */
+    function parseAmount(text) {
+        const match = text.match(/(\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?)/);
+        if (!match) return null;
+
+        let raw = match[1];
+
+        const hasDot = raw.includes('.');
+        const hasComma = raw.includes(',');
+
+        if (hasDot && hasComma) {
+            // "1.234,56" -> ponto é milhar, vírgula é decimal
+            raw = raw.replace(/\./g, '').replace(',', '.');
+        } else if (hasComma) {
+            // "120,50" -> vírgula decimal
+            raw = raw.replace(',', '.');
+        } else if (hasDot) {
+            const parts = raw.split('.');
+            const lastPart = parts[parts.length - 1];
+            if (parts.length > 1 && lastPart.length === 3) {
+                // "1.500" -> ponto de milhar (moeda raramente tem 3 casas decimais)
+                raw = raw.replace(/\./g, '');
+            }
+            // senão, já é decimal padrão ("120.5")
+        }
+
+        const value = parseFloat(raw);
+        return Number.isFinite(value) && value > 0 ? value : null;
+    }
+
+    /* =========================================================
+       10. RECONHECIMENTO DE CATEGORIA POR PONTUAÇÃO
+       Em vez de parar na primeira palavra-chave que bater
+       (o que causava erros como marcar "cliente" como Investimento
+       por engano), soma pontos por categoria e escolhe a maior.
+       ========================================================= */
+    function detectCategoryFromText(lowerText) {
+        let bestSlug = null;
+        let bestScore = 0;
+
+        Object.entries(CATEGORY_KEYWORDS).forEach(([slug, keywords]) => {
+            const score = keywords.reduce((acc, kw) => acc + (lowerText.includes(kw) ? 1 : 0), 0);
+            if (score > bestScore) {
+                bestScore = score;
+                bestSlug = slug;
+            }
+        });
+
+        if (!bestSlug) return null;
+        return categoriesList.find(c => c.slug === bestSlug) || null;
+    }
+
+    /* =========================================================
+       11. ENVIAR E PROCESSAR MENSAGENS
+       ========================================================= */
     btnSend.addEventListener('click', handleUserPrompt);
     textInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') handleUserPrompt();
@@ -294,52 +430,42 @@ document.addEventListener('DOMContentLoaded', () => {
         const query = textInput.value.trim();
         if (!query) return;
 
-        const lower = query.toLowerCase();
-        const matchValue = lower.match(/(\d+[\.,]?\d*)/);
-
-        if (matchValue) {
-            processFinancialRegistration(query, lower, parseFloat(matchValue[0].replace(',', '.')));
-        } else {
-            processFinancialAdvisory(lower);
-        }
-
+        addChatMessage('user', query);
         textInput.value = '';
+        btnSend.disabled = true;
+
+        const lower = query.toLowerCase();
+        const value = parseAmount(lower);
+
+        setTimeout(() => {
+            if (value !== null) {
+                processFinancialRegistration(query, lower, value);
+            } else {
+                processFinancialAdvisory(lower);
+            }
+            btnSend.disabled = false;
+        }, 150);
     }
 
     function processFinancialRegistration(rawText, lowerText, value) {
         let matchedCategory = null;
+        let autoDetected = false;
 
-        // 1. Seleção manual via botão/chip
         if (selectedCategory !== 'auto') {
             const activeBtn = categorySelector.querySelector('.chip-btn.active');
             const fullName = activeBtn ? activeBtn.getAttribute('data-fullname') : '';
             matchedCategory = categoriesList.find(c => c.name.toLowerCase() === fullName.toLowerCase());
         }
 
-        // 2. Reconhecimento automático pela IA se 'Auto' estiver selecionado
         if (!matchedCategory) {
-            if (lowerText.includes('empresa') || lowerText.includes('negócio') || lowerText.includes('cliente')) {
-                matchedCategory = categoriesList.find(c => c.slug === 'empresa');
-                if (!matchedCategory) {
-                    matchedCategory = { name: 'Empresa', slug: 'empresa', color: '#f59e0b', icon: 'fa-building' };
-                    categoriesList.push(matchedCategory);
-                    renderCustomChipsAndFilters();
-                }
-            } else if (lowerText.includes('invest') || lowerText.includes('fundo') || lowerText.includes('ações')) {
-                matchedCategory = categoriesList.find(c => c.slug === 'investimento');
-            } else if (lowerText.includes('alimenta') || lowerText.includes('almoço') || lowerText.includes('mercado')) {
-                matchedCategory = categoriesList.find(c => c.slug === 'alimentacao');
-            } else if (lowerText.includes('crédito') || lowerText.includes('credito')) {
-                matchedCategory = categoriesList.find(c => c.slug === 'credito');
-            } else if (lowerText.includes('dinheiro')) {
-                matchedCategory = categoriesList.find(c => c.slug === 'dinheiro');
-            } else {
-                matchedCategory = categoriesList.find(c => c.slug === 'debito');
-            }
+            matchedCategory = detectCategoryFromText(lowerText);
+            autoDetected = true;
         }
 
-        const now = new Date();
-        const timeFormatted = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        if (!matchedCategory) {
+            matchedCategory = categoriesList.find(c => c.slug === 'outros')
+                || { name: 'Outros', slug: 'outros', color: '#6b7280', icon: 'fa-circle-question' };
+        }
 
         const newTransaction = {
             id: Date.now(),
@@ -347,24 +473,51 @@ document.addEventListener('DOMContentLoaded', () => {
             amount: value,
             categoryName: matchedCategory.name,
             icon: matchedCategory.icon || 'fa-wallet',
-            date: `Hoje às ${timeFormatted}`
+            date: `Hoje às ${formatTime()}`
         };
 
         transactions.unshift(newTransaction);
         saveState();
         updateUI();
 
-        aiTextResponse.innerHTML = `Lançamento de <strong>R$ ${value.toFixed(2).replace('.', ',')}</strong> direcionado com sucesso para a categoria <strong>${matchedCategory.name}</strong>.`;
+        const formattedValue = value.toFixed(2).replace('.', ',');
+        let message = `Lançamento de <strong>R$ ${formattedValue}</strong> registrado em <strong>${matchedCategory.name}</strong>.`;
+
+        if (autoDetected && matchedCategory.slug === 'outros') {
+            message += ' Não reconheci a categoria pelo texto — se quiser, escolha um chip antes de lançar o próximo item.';
+        } else if (autoDetected) {
+            const categoryTotal = transactions
+                .filter(t => t.categoryName === matchedCategory.name)
+                .reduce((acc, t) => acc + t.amount, 0);
+            const overallTotal = transactions.reduce((acc, t) => acc + t.amount, 0);
+            const share = overallTotal > 0 ? Math.round((categoryTotal / overallTotal) * 100) : 0;
+
+            if (share >= 40) {
+                message += ` Só de olho: <strong>${matchedCategory.name}</strong> já representa ${share}% de tudo que você registrou.`;
+            }
+        }
+
+        replyWithDelay(message, 450);
     }
 
     function processFinancialAdvisory(query) {
-        let response = "Estou pronto para ajudar! Digite um valor e escolha a categoria para registrar seu lançamento.";
-        if (query.includes('empresa')) {
-            response = "<strong>Dica Corporativa:</strong> Manter as contas da Empresa separadas das contas Pessoais é o primeiro passo para o crescimento saudável do seu negócio!";
-        } else if (query.includes('economizar') || query.includes('guardar')) {
-            response = "<strong>Estratégia:</strong> Utilize a regra 50/30/20: 50% necessidades, 30% desejos e 20% investimento/empresa.";
-        }
-        aiTextResponse.innerHTML = response;
+        const tips = [
+            { keys: ['empresa', 'negócio', 'negocio'], text: '<strong>Dica corporativa:</strong> manter as contas da empresa separadas das pessoais é o primeiro passo para um crescimento saudável do negócio.' },
+            { keys: ['economizar', 'guardar', 'poupar'], text: '<strong>Estratégia 50/30/20:</strong> 50% necessidades, 30% desejos e 20% investimento ou reserva de emergência.' },
+            { keys: ['dívida', 'divida', 'endividado'], text: '<strong>Dívidas:</strong> priorize sempre quitar primeiro as de juros mais altos (geralmente cartão de crédito e cheque especial).' },
+            { keys: ['reserva', 'emergência', 'emergencia'], text: '<strong>Reserva de emergência:</strong> o ideal é ter de 3 a 6 meses do seu custo de vida guardado em algo líquido, como Tesouro Selic ou CDB com liquidez diária.' },
+            { keys: ['meta', 'objetivo', 'planejamento'], text: '<strong>Planejamento:</strong> metas financeiras funcionam melhor quando têm valor e prazo definidos — em vez de "guardar dinheiro", tente "guardar R$ 300/mês por 6 meses".' },
+            { keys: ['cartão', 'cartao', 'fatura'], text: '<strong>Cartão de crédito:</strong> tente nunca pagar apenas o mínimo da fatura — os juros do rotativo estão entre os mais altos do mercado.' },
+            { keys: ['oi', 'olá', 'ola', 'bom dia', 'boa tarde', 'boa noite'], text: 'Olá! Pode me contar um gasto (ex: "R$ 30 uber") ou perguntar sobre organização financeira, dívidas, reserva de emergência ou metas.' },
+        ];
+
+        const found = tips.find(tip => tip.keys.some(k => query.includes(k)));
+
+        const response = found
+            ? found.text
+            : 'Não peguei um valor na sua mensagem. Digite algo como <strong>"R$ 45 almoço"</strong> para eu lançar, ou pergunte sobre dívidas, reserva de emergência, metas ou economia.';
+
+        replyWithDelay(response, 500);
     }
 
     // Evento de Mudança no Filtro do Extrato
