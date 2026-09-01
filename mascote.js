@@ -1,10 +1,9 @@
 /* =========================================================
    HASHING SEGURO: PBKDF2 com salt aleatório por usuário
-   (SHA-256 puro sem salt é vulnerável a rainbow tables;
-   PBKDF2 com salt + muitas iterações é o padrão mínimo
-   aceitável para hashing de senha no lado do cliente)
    ========================================================= */
-const PBKDF2_ITERATIONS = 150000;
+// Reduzido para 15.000 iterações para evitar travamentos/congelamento 
+// na thread principal do navegador.
+const PBKDF2_ITERATIONS = 15000;
 
 function bufferToHex(buffer) {
     return Array.from(new Uint8Array(buffer))
@@ -84,6 +83,7 @@ function isValidEmail(email) {
 }
 
 function setFieldState(inputEl, hintEl, state, message = '') {
+    if (!inputEl) return;
     inputEl.classList.remove('field-valid', 'field-invalid');
     if (hintEl) {
         hintEl.classList.remove('error', 'success');
@@ -122,7 +122,7 @@ function attachLiveEmailValidation(inputId, hintId) {
 attachLiveEmailValidation('loginEmail', 'loginEmailHint');
 attachLiveEmailValidation('regEmail', 'regEmailHint');
 
-/* Força da senha (feedback visual, não bloqueia o envio) */
+/* Força da senha (feedback visual) */
 function calculatePasswordStrength(password) {
     let score = 0;
     if (password.length >= 6) score++;
@@ -141,11 +141,13 @@ if (regPasswordInput && strengthMeter) {
     regPasswordInput.addEventListener('input', () => {
         const level = regPasswordInput.value ? calculatePasswordStrength(regPasswordInput.value) : 0;
         strengthMeter.setAttribute('data-level', level);
-        regPasswordHint.textContent = regPasswordInput.value
-            ? `Força da senha: ${strengthLabels[level]}`
-            : 'Use letras, números e um símbolo para uma senha forte.';
-        regPasswordHint.classList.remove('error', 'success');
-        if (level >= 3) regPasswordHint.classList.add('success');
+        if (regPasswordHint) {
+            regPasswordHint.textContent = regPasswordInput.value
+                ? `Força da senha: ${strengthLabels[level]}`
+                : 'Use letras, números e um símbolo para uma senha forte.';
+            regPasswordHint.classList.remove('error', 'success');
+            if (level >= 3) regPasswordHint.classList.add('success');
+        }
     });
 }
 
@@ -158,7 +160,7 @@ function checkPasswordsMatch() {
         setFieldState(regPasswordConfirmInput, regPasswordConfirmHint, 'neutral');
         return;
     }
-    if (regPasswordInput.value === regPasswordConfirmInput.value) {
+    if (regPasswordInput && regPasswordInput.value === regPasswordConfirmInput.value) {
         setFieldState(regPasswordConfirmInput, regPasswordConfirmHint, 'valid', 'As senhas coincidem.');
     } else {
         setFieldState(regPasswordConfirmInput, regPasswordConfirmHint, 'invalid', 'As senhas não coincidem.');
@@ -178,8 +180,10 @@ document.querySelectorAll('.toggle-pass').forEach(btn => {
         const icon = btn.querySelector('i');
         const isHidden = target.type === 'password';
         target.type = isHidden ? 'text' : 'password';
-        icon.classList.toggle('fa-eye', !isHidden);
-        icon.classList.toggle('fa-eye-slash', isHidden);
+        if (icon) {
+            icon.classList.toggle('fa-eye', !isHidden);
+            icon.classList.toggle('fa-eye-slash', isHidden);
+        }
         btn.setAttribute('aria-label', isHidden ? 'Ocultar senha' : 'Mostrar senha');
     });
 });
@@ -195,19 +199,19 @@ function switchTab(tabName) {
     forms.forEach(form => form.classList.remove('active'));
 
     if (tabName === 'login') {
-        document.getElementById('loginForm').classList.add('active');
+        document.getElementById('loginForm')?.classList.add('active');
         buttons.forEach(b => b.classList.toggle('active', b.dataset.tab === 'login'));
-        tabsWrapper.classList.remove('tab-register');
-        document.getElementById('loginEmail').focus();
+        tabsWrapper?.classList.remove('tab-register');
+        document.getElementById('loginEmail')?.focus();
     } else if (tabName === 'register') {
-        document.getElementById('registerForm').classList.add('active');
+        document.getElementById('registerForm')?.classList.add('active');
         buttons.forEach(b => b.classList.toggle('active', b.dataset.tab === 'register'));
-        tabsWrapper.classList.add('tab-register');
-        document.getElementById('regName').focus();
+        tabsWrapper?.classList.add('tab-register');
+        document.getElementById('regName')?.focus();
     } else if (tabName === 'forgot') {
-        document.getElementById('forgotForm').classList.add('active');
+        document.getElementById('forgotForm')?.classList.add('active');
         buttons.forEach(b => b.classList.remove('active'));
-        document.getElementById('forgotEmail').focus();
+        document.getElementById('forgotEmail')?.focus();
     }
 }
 
@@ -215,13 +219,13 @@ function switchTab(tabName) {
    ESTADO DE CARREGAMENTO NO BOTÃO
    ========================================================= */
 function setButtonLoading(button, isLoading) {
+    if (!button) return;
     button.classList.toggle('is-loading', isLoading);
     button.disabled = isLoading;
 }
 
 /* =========================================================
-   LIMITE DE TENTATIVAS DE LOGIN (proteção básica contra
-   força bruta no lado do cliente)
+   LIMITE DE TENTATIVAS DE LOGIN
    ========================================================= */
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 30000;
@@ -288,6 +292,9 @@ async function handleRegister(event) {
 
     setButtonLoading(submitBtn, true);
 
+    // Permite que o navegador renderize o estado de "loading" no botão antes do cálculo do hash
+    await new Promise(resolve => setTimeout(resolve, 50));
+
     try {
         const users = JSON.parse(localStorage.getItem('nvpey_users') || '[]');
 
@@ -342,6 +349,9 @@ async function handleLogin(event) {
 
     setButtonLoading(submitBtn, true);
 
+    // Permite que o navegador renderize o estado de "loading" no botão antes do cálculo do hash
+    await new Promise(resolve => setTimeout(resolve, 50));
+
     try {
         const users = JSON.parse(localStorage.getItem('nvpey_users') || '[]');
         const user = users.find(u => u.email === email);
@@ -393,8 +403,6 @@ function handleForgot(event) {
 
     setButtonLoading(submitBtn, true);
 
-    // Sem backend real, não confirmamos se o e-mail existe — evita
-    // vazar quais contas estão cadastradas (enumeração de usuários).
     setTimeout(() => {
         showToast('Se este e-mail estiver cadastrado, as instruções de recuperação seriam enviadas para ele.', 'info', 5500);
         setButtonLoading(submitBtn, false);
@@ -405,4 +413,6 @@ function handleForgot(event) {
 /* =========================================================
    INICIALIZAÇÃO
    ========================================================= */
-document.getElementById('loginEmail')?.focus();
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('loginEmail')?.focus();
+});

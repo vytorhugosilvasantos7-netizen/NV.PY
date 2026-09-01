@@ -3,121 +3,275 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NVPEY | Banco Digital</title>
+    <title>NVPEY | Organize suas finanças com IA</title>
+    <meta name="description" content="NVPEY é uma plataforma financeira inteligente que categoriza seus gastos automaticamente com IA. Seus dados ficam só no seu navegador.">
+
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%238b5cf6'/%3E%3Cpath d='M55 20 L32 56 H48 L44 82 L70 42 H53 Z' fill='white'/%3E%3C/svg%3E">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="login-style.css">
 </head>
 <body>
 
-    <div class="bg-glow"></div>
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="bg-glow" aria-hidden="true"></div>
 
-    <main class="login-clean-container">
+    <div class="toast-stack" id="toastStack" aria-live="polite"></div>
 
-        <div class="security-badge">
-            <i class="fa-solid fa-shield-halved"></i>
-            <span>Criptografia SSL 256-Bit</span>
-        </div>
+    <div class="page-shell">
 
-        <header class="login-header">
-            <div class="logo">
+        <!-- COLUNA DE APRESENTAÇÃO DO PRODUTO -->
+        <section class="showcase-panel">
+            <div class="showcase-logo">
                 <i class="fa-solid fa-bolt"></i>
-                <h1>NV<span>PEY</span></h1>
-            </div>
-            <p>Sua plataforma financeira inteligente</p>
-        </header>
-
-        <!-- NAVEGAÇÃO ENTRE ABAS -->
-        <div class="auth-tabs">
-            <button class="tab-btn active" onclick="switchTab('login')">Entrar</button>
-            <button class="tab-btn" onclick="switchTab('register')">Criar Conta</button>
-        </div>
-
-        <!-- FORMULÁRIO 1: LOGIN -->
-        <form id="loginForm" class="auth-form active" onsubmit="handleLogin(event)">
-            <div class="input-field">
-                <label for="loginEmail">E-mail de acesso</label>
-                <div class="input-box">
-                    <i class="fa-regular fa-envelope input-icon"></i>
-                    <input type="email" id="loginEmail" placeholder="seuemail@dominio.com" required>
-                </div>
+                <span>NV<em>PEY</em></span>
             </div>
 
-            <div class="input-field">
-                <div class="label-row">
-                    <label for="loginPassword">Senha</label>
-                    <a href="#" class="forgot-pass" onclick="switchTab('forgot'); return false;">Esqueceu a senha?</a>
-                </div>
-                <div class="input-box">
-                    <i class="fa-solid fa-lock input-icon"></i>
-                    <input type="password" id="loginPassword" placeholder="••••••••••••" required minlength="6">
-                </div>
-            </div>
+            <h1 class="showcase-title">Organize suas finanças<br>com apoio de <span>IA</span>.</h1>
+            <p class="showcase-desc">
+                Digite um gasto em texto livre e a NVPEY categoriza, lança no gráfico
+                e te dá dicas na hora — sem planilha, sem complicação.
+            </p>
 
-            <button type="submit" class="btn-primary">
-                <span>Acessar Conta Segura</span>
-                <i class="fa-solid fa-arrow-right"></i>
-            </button>
-        </form>
+            <ul class="feature-list">
+                <li>
+                    <div class="feature-icon"><i class="fa-solid fa-brain-circuit"></i></div>
+                    <div>
+                        <h3>Categorização automática</h3>
+                        <p>A IA reconhece o contexto do que você digita e organiza por categoria sozinha.</p>
+                    </div>
+                </li>
+                <li>
+                    <div class="feature-icon"><i class="fa-solid fa-chart-pie"></i></div>
+                    <div>
+                        <h3>Gráficos em tempo real</h3>
+                        <p>Veja o balanço entre categorias se atualizar a cada lançamento novo.</p>
+                    </div>
+                </li>
+                <li>
+                    <div class="feature-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                    <div>
+                        <h3>Seus dados, seu navegador</h3>
+                        <p>Sem servidor por trás: nada do que você registra sai do seu dispositivo.</p>
+                    </div>
+                </li>
+            </ul>
 
-        <!-- FORMULÁRIO 2: CRIAR CONTA -->
-        <form id="registerForm" class="auth-form" onsubmit="handleRegister(event)">
-            <div class="input-field">
-                <label for="regName">Nome Completo</label>
-                <div class="input-box">
-                    <i class="fa-regular fa-user input-icon"></i>
-                    <input type="text" id="regName" placeholder="Seu nome completo" required>
-                </div>
-            </div>
+            <!-- MOCKUP DECORATIVO DO PAINEL -->
+            <div class="preview-mockup" aria-hidden="true">
+                <div class="preview-dot red"></div>
+                <div class="preview-dot yellow"></div>
+                <div class="preview-dot green"></div>
 
-            <div class="input-field">
-                <label for="regEmail">E-mail de cadastro</label>
-                <div class="input-box">
-                    <i class="fa-regular fa-envelope input-icon"></i>
-                    <input type="email" id="regEmail" placeholder="seuemail@dominio.com" required>
-                </div>
-            </div>
-
-            <div class="input-field">
-                <label for="regPassword">Crie uma Senha</label>
-                <div class="input-box">
-                    <i class="fa-solid fa-lock input-icon"></i>
-                    <input type="password" id="regPassword" placeholder="Mínimo 6 caracteres" required minlength="6">
-                </div>
-            </div>
-
-            <button type="submit" class="btn-primary">
-                <span>Cadastrar e Entrar</span>
-                <i class="fa-solid fa-user-plus"></i>
-            </button>
-        </form>
-
-        <!-- FORMULÁRIO 3: ESQUECI A SENHA -->
-        <form id="forgotForm" class="auth-form" onsubmit="handleForgot(event)">
-            <p class="form-desc">Digite seu e-mail cadastrado. Enviaremos um link para redefinir sua senha.</p>
-            
-            <div class="input-field">
-                <label for="forgotEmail">E-mail de acesso</label>
-                <div class="input-box">
-                    <i class="fa-regular fa-envelope input-icon"></i>
-                    <input type="email" id="forgotEmail" placeholder="seuemail@dominio.com" required>
+                <div class="preview-body">
+                    <div class="preview-ring">
+                        <span>R$ 2.480</span>
+                    </div>
+                    <div class="preview-chat">
+                        <div class="preview-bubble">
+                            <i class="fa-solid fa-brain-circuit"></i>
+                            <span>R$ 45 lançado em Alimentação ✓</span>
+                        </div>
+                    </div>
                 </div>
             </div>
+        </section>
 
-            <button type="submit" class="btn-primary">
-                <span>Enviar Link de Recuperação</span>
-                <i class="fa-solid fa-paper-plane"></i>
-            </button>
+        <!-- COLUNA DE AUTENTICAÇÃO -->
+        <main class="login-clean-container">
 
-            <button type="button" class="btn-secondary" onclick="switchTab('login')">
-                Voltar para o Login
-            </button>
-        </form>
+            <div class="security-badge">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>Senha protegida com hash + salt</span>
+            </div>
 
-        <footer class="login-footer">
-            <p><i class="fa-solid fa-lock"></i> Ambiente protegido contra fraudes.</p>
-        </footer>
+            <header class="login-header login-header-compact">
+                <p>Acesse sua conta</p>
+            </header>
 
-    </main>
+            <!-- NAVEGAÇÃO ENTRE ABAS -->
+            <div class="auth-tabs" id="authTabs">
+                <button type="button" class="tab-btn active" data-tab="login" onclick="switchTab('login')">Entrar</button>
+                <button type="button" class="tab-btn" data-tab="register" onclick="switchTab('register')">Criar Conta</button>
+            </div>
+
+            <!-- FORMULÁRIO 1: LOGIN -->
+            <form id="loginForm" class="auth-form active" onsubmit="handleLogin(event)" novalidate>
+                <div class="input-field">
+                    <label for="loginEmail">E-mail de acesso</label>
+                    <div class="input-box">
+                        <i class="fa-regular fa-envelope input-icon"></i>
+                        <input
+                            type="email"
+                            id="loginEmail"
+                            name="email"
+                            placeholder="seuemail@dominio.com"
+                            autocomplete="email"
+                            inputmode="email"
+                            required>
+                    </div>
+                    <span class="field-hint" id="loginEmailHint"></span>
+                </div>
+
+                <div class="input-field">
+                    <div class="label-row">
+                        <label for="loginPassword">Senha</label>
+                        <a href="#" class="forgot-pass" onclick="switchTab('forgot'); return false;">Esqueceu a senha?</a>
+                    </div>
+                    <div class="input-box">
+                        <i class="fa-solid fa-lock input-icon"></i>
+                        <input
+                            type="password"
+                            id="loginPassword"
+                            name="password"
+                            placeholder="••••••••••••"
+                            autocomplete="current-password"
+                            required
+                            minlength="6">
+                        <button type="button" class="toggle-pass" data-target="loginPassword" aria-label="Mostrar senha">
+                            <i class="fa-regular fa-eye"></i>
+                        </button>
+                    </div>
+                    <span class="field-hint" id="loginPasswordHint"></span>
+                </div>
+
+                <label class="checkbox-row">
+                    <input type="checkbox" id="rememberMe">
+                    <span>Manter conectado neste dispositivo</span>
+                </label>
+
+                <button type="submit" class="btn-primary" id="loginSubmitBtn">
+                    <span class="btn-label">Acessar Conta Segura</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                    <span class="spinner"></span>
+                </button>
+            </form>
+
+            <!-- FORMULÁRIO 2: CRIAR CONTA -->
+            <form id="registerForm" class="auth-form" onsubmit="handleRegister(event)" novalidate>
+                <div class="input-field">
+                    <label for="regName">Nome completo</label>
+                    <div class="input-box">
+                        <i class="fa-regular fa-user input-icon"></i>
+                        <input
+                            type="text"
+                            id="regName"
+                            name="name"
+                            placeholder="Seu nome completo"
+                            autocomplete="name"
+                            required>
+                    </div>
+                </div>
+
+                <div class="input-field">
+                    <label for="regEmail">E-mail de cadastro</label>
+                    <div class="input-box">
+                        <i class="fa-regular fa-envelope input-icon"></i>
+                        <input
+                            type="email"
+                            id="regEmail"
+                            name="email"
+                            placeholder="seuemail@dominio.com"
+                            autocomplete="email"
+                            inputmode="email"
+                            required>
+                    </div>
+                    <span class="field-hint" id="regEmailHint"></span>
+                </div>
+
+                <div class="input-field">
+                    <label for="regPassword">Crie uma senha</label>
+                    <div class="input-box">
+                        <i class="fa-solid fa-lock input-icon"></i>
+                        <input
+                            type="password"
+                            id="regPassword"
+                            name="new-password"
+                            placeholder="Mínimo 6 caracteres"
+                            autocomplete="new-password"
+                            required
+                            minlength="6">
+                        <button type="button" class="toggle-pass" data-target="regPassword" aria-label="Mostrar senha">
+                            <i class="fa-regular fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="strength-meter" id="strengthMeter" data-level="0">
+                        <span></span><span></span><span></span><span></span>
+                    </div>
+                    <span class="field-hint" id="regPasswordHint">Use letras, números e um símbolo para uma senha forte.</span>
+                </div>
+
+                <div class="input-field">
+                    <label for="regPasswordConfirm">Confirme a senha</label>
+                    <div class="input-box">
+                        <i class="fa-solid fa-lock input-icon"></i>
+                        <input
+                            type="password"
+                            id="regPasswordConfirm"
+                            name="confirm-password"
+                            placeholder="Repita a senha"
+                            autocomplete="new-password"
+                            required
+                            minlength="6">
+                        <button type="button" class="toggle-pass" data-target="regPasswordConfirm" aria-label="Mostrar senha">
+                            <i class="fa-regular fa-eye"></i>
+                        </button>
+                    </div>
+                    <span class="field-hint" id="regPasswordConfirmHint"></span>
+                </div>
+
+                <label class="checkbox-row">
+                    <input type="checkbox" id="acceptTerms" required>
+                    <span>Li e concordo com os termos de uso deste projeto de demonstração.</span>
+                </label>
+
+                <button type="submit" class="btn-primary" id="registerSubmitBtn">
+                    <span class="btn-label">Cadastrar e Entrar</span>
+                    <i class="fa-solid fa-user-plus"></i>
+                    <span class="spinner"></span>
+                </button>
+            </form>
+
+            <!-- FORMULÁRIO 3: ESQUECI A SENHA -->
+            <form id="forgotForm" class="auth-form" onsubmit="handleForgot(event)" novalidate>
+                <p class="form-desc">Digite seu e-mail cadastrado. Se ele existir na nossa base, mostramos os próximos passos para recuperar o acesso.</p>
+
+                <div class="input-field">
+                    <label for="forgotEmail">E-mail de acesso</label>
+                    <div class="input-box">
+                        <i class="fa-regular fa-envelope input-icon"></i>
+                        <input
+                            type="email"
+                            id="forgotEmail"
+                            name="email"
+                            placeholder="seuemail@dominio.com"
+                            autocomplete="email"
+                            inputmode="email"
+                            required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary" id="forgotSubmitBtn">
+                    <span class="btn-label">Enviar Link de Recuperação</span>
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span class="spinner"></span>
+                </button>
+
+                <button type="button" class="btn-secondary" onclick="switchTab('login')">
+                    Voltar para o login
+                </button>
+            </form>
+
+            <footer class="login-footer">
+                <p><i class="fa-solid fa-lock"></i> Ambiente protegido contra fraudes.</p>
+            </footer>
+
+        </main>
+
+    </div>
 
     <script src="mascote.js"></script>
 </body>
