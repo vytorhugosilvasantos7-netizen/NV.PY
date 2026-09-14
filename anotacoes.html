@@ -31,18 +31,38 @@
         <main class="content-container">
 
             <section class="chart-section">
-                <div class="chart-card">
-                    <div class="chart-header">
-                        <h3><i class="fa-solid fa-chart-pie"></i> Balanço Financeiro Geral</h3>
-                        <span class="total-display" id="totalDisplay">Total Registrado: R$ 0,00</span>
+                <div class="chart-grid">
+
+                    <!-- GRÁFICO 1: GASTOS -->
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3><i class="fa-solid fa-chart-pie"></i> Gastos por Categoria</h3>
+                            <span class="total-display" id="totalDisplayGastos">Total em Gastos: R$ 0,00</span>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="financeChartGastos"></canvas>
+                        </div>
                     </div>
-                    <div class="chart-wrapper">
-                        <canvas id="financeChart"></canvas>
+
+                    <!-- GRÁFICO 2: INVESTIMENTOS (separado para não misturar com gastos) -->
+                    <div class="chart-card chart-card--invest">
+                        <div class="chart-header">
+                            <h3><i class="fa-solid fa-arrow-trend-up"></i> Evolução dos Investimentos</h3>
+                            <span class="total-display total-display--invest" id="totalDisplayInvest">Total Investido: R$ 0,00</span>
+                        </div>
+                        <div class="chart-wrapper" id="investChartWrapper">
+                            <canvas id="financeChartInvest"></canvas>
+                        </div>
+                        <div class="chart-empty-state" id="investEmptyState">
+                            <i class="fa-solid fa-seedling"></i>
+                            <p>Nenhum investimento registrado ainda. Tente lançar algo como "R$ 200 tesouro selic" e acompanhe a linha subir aqui.</p>
+                        </div>
                     </div>
+
                 </div>
             </section>
 
-            <!-- CONSOLE DE CONSULTORIA — agora um feed de conversa real -->
+            <!-- CONSOLE DE CONSULTORIA — feed de conversa -->
             <section class="ai-chat-section">
 
                 <div class="ai-chat-feed" id="aiChatFeed" aria-live="polite"></div>
@@ -64,37 +84,54 @@
                     </div>
 
                     <div class="category-selector" id="categorySelector">
-                        <span class="selector-label">Destinar para:</span>
-                        <button type="button" class="chip-btn active" data-category="auto" data-fullname="Auto (IA)">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i> Auto (IA)
-                        </button>
-                        <button type="button" class="chip-btn" data-category="credito" data-fullname="Cartão de Crédito">
-                            <i class="fa-solid fa-credit-card"></i> Crédito
-                        </button>
-                        <button type="button" class="chip-btn" data-category="debito" data-fullname="Cartão de Débito">
-                            <i class="fa-solid fa-wallet"></i> Débito
-                        </button>
-                        <button type="button" class="chip-btn" data-category="alimentacao" data-fullname="Alimentação">
-                            <i class="fa-solid fa-utensils"></i> Alimentação
-                        </button>
-                        <button type="button" class="chip-btn" data-category="transporte" data-fullname="Transporte">
-                            <i class="fa-solid fa-car"></i> Transporte
-                        </button>
-                        <button type="button" class="chip-btn" data-category="moradia" data-fullname="Moradia">
-                            <i class="fa-solid fa-house"></i> Moradia
-                        </button>
-                        <button type="button" class="chip-btn" data-category="dinheiro" data-fullname="Dinheiro">
-                            <i class="fa-solid fa-money-bill-wave"></i> Dinheiro
-                        </button>
-                        <button type="button" class="chip-btn" data-category="investimento" data-fullname="Investimentos">
-                            <i class="fa-solid fa-chart-line"></i> Investimentos
-                        </button>
-                        <button type="button" class="chip-btn" data-category="negocios" data-fullname="Negócios">
-                            <i class="fa-solid fa-briefcase"></i> Negócios
-                        </button>
+
+                        <div class="selector-block">
+                            <span class="selector-label">Lançamento automático</span>
+                            <div class="chip-row">
+                                <button type="button" class="chip-btn active" data-category="auto" data-fullname="Auto (IA)">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i> Auto (IA)
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="selector-block">
+                            <span class="selector-label selector-label--gasto"><i class="fa-solid fa-arrow-trend-down"></i> Gastos</span>
+                            <div class="chip-row" id="gastoChipsRow">
+                                <button type="button" class="chip-btn" data-category="credito" data-fullname="Cartão de Crédito">
+                                    <i class="fa-solid fa-credit-card"></i> Crédito
+                                </button>
+                                <button type="button" class="chip-btn" data-category="debito" data-fullname="Cartão de Débito">
+                                    <i class="fa-solid fa-wallet"></i> Débito
+                                </button>
+                                <button type="button" class="chip-btn" data-category="alimentacao" data-fullname="Alimentação">
+                                    <i class="fa-solid fa-utensils"></i> Alimentação
+                                </button>
+                                <button type="button" class="chip-btn" data-category="transporte" data-fullname="Transporte">
+                                    <i class="fa-solid fa-car"></i> Transporte
+                                </button>
+                                <button type="button" class="chip-btn" data-category="moradia" data-fullname="Moradia">
+                                    <i class="fa-solid fa-house"></i> Moradia
+                                </button>
+                                <button type="button" class="chip-btn" data-category="dinheiro" data-fullname="Dinheiro">
+                                    <i class="fa-solid fa-money-bill-wave"></i> Dinheiro
+                                </button>
+                                <button type="button" class="chip-btn" data-category="negocios" data-fullname="Negócios">
+                                    <i class="fa-solid fa-briefcase"></i> Negócios
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="selector-block">
+                            <span class="selector-label selector-label--invest"><i class="fa-solid fa-arrow-trend-up"></i> Investimentos</span>
+                            <div class="chip-row" id="investChipsRow">
+                                <button type="button" class="chip-btn chip-btn--invest" data-category="investimento" data-fullname="Investimentos">
+                                    <i class="fa-solid fa-chart-line"></i> Investimentos
+                                </button>
+                            </div>
+                        </div>
 
                         <button type="button" class="chip-btn btn-add-category" id="btnAddCategory">
-                            <i class="fa-solid fa-plus"></i> Adicionar
+                            <i class="fa-solid fa-plus"></i> Nova categoria
                         </button>
                     </div>
 
@@ -105,11 +142,20 @@
             <section class="history-section">
                 <div class="history-header">
                     <h3><i class="fa-solid fa-list-check"></i> Extrato de Registros</h3>
-                    <div class="history-filter-wrapper">
-                        <i class="fa-solid fa-filter filter-icon"></i>
-                        <select id="historyFilter" class="history-filter-select">
-                            <option value="all">Todas as categorias</option>
-                        </select>
+
+                    <div class="history-controls">
+                        <div class="history-type-tabs" id="historyTypeTabs">
+                            <button type="button" class="tab-chip active" data-type="all">Todos</button>
+                            <button type="button" class="tab-chip" data-type="gasto">Gastos</button>
+                            <button type="button" class="tab-chip" data-type="investimento">Investimentos</button>
+                        </div>
+
+                        <div class="history-filter-wrapper">
+                            <i class="fa-solid fa-filter filter-icon"></i>
+                            <select id="historyFilter" class="history-filter-select">
+                                <option value="all">Todas as categorias</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
                 <div class="history-list" id="historyList">
@@ -125,6 +171,16 @@
             <h3><i class="fa-solid fa-folder-plus"></i> Criar Nova Categoria</h3>
             <p>Digite o nome do destino para suas finanças (Ex: Empresa, Carro, Faculdade, etc.):</p>
             <input type="text" id="newCategoryInput" placeholder="Ex: Empresa" maxlength="20">
+
+            <div class="type-toggle" id="categoryTypeToggle">
+                <button type="button" class="type-btn active" data-type="gasto">
+                    <i class="fa-solid fa-arrow-trend-down"></i> É um Gasto
+                </button>
+                <button type="button" class="type-btn" data-type="investimento">
+                    <i class="fa-solid fa-arrow-trend-up"></i> É um Investimento
+                </button>
+            </div>
+
             <div class="modal-actions">
                 <button type="button" class="btn-cancel" id="btnCancelCategory">Cancelar</button>
                 <button type="button" class="btn-confirm" id="btnConfirmCategory">Criar Categoria</button>

@@ -77,9 +77,16 @@ body {
     box-shadow: 0 0 15px rgba(168, 85, 247, 0.2);
 }
 
-/* Gráfico Roxo */
+/* ============ GRÁFICOS: GASTOS + INVESTIMENTOS LADO A LADO ============ */
 .chart-section {
     margin-bottom: 28px;
+}
+
+.chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: stretch;
 }
 
 .chart-card {
@@ -88,6 +95,17 @@ body {
     border-radius: 24px;
     padding: 24px;
     backdrop-filter: blur(12px);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Card de investimentos ganha um leve destaque em verde para
+   diferenciar visualmente dos gastos (roxo) */
+.chart-card--invest {
+    border-color: rgba(16, 185, 129, 0.25);
+}
+.chart-card--invest .chart-header h3 {
+    color: var(--status-active);
 }
 
 .chart-header {
@@ -109,24 +127,58 @@ body {
 }
 
 .total-display {
-    font-size: 1rem;
+    font-size: 0.92rem;
     font-weight: 700;
     color: var(--white-pure);
     background: rgba(255, 255, 255, 0.08);
     padding: 6px 14px;
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    white-space: nowrap;
+}
+
+.total-display--invest {
+    color: var(--status-active);
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.3);
 }
 
 .chart-wrapper {
     position: relative;
-    height: 260px;
+    height: 240px;
     width: 100%;
     display: flex;
     justify-content: center;
+    flex: 1;
 }
 
-/* ============ CHAT DA IA — agora um feed de verdade ============ */
+/* Estado vazio do gráfico de investimentos, enquanto não há
+   nenhum lançamento nessa categoria ainda */
+.chart-empty-state {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    height: 240px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    padding: 0 12px;
+    flex: 1;
+}
+.chart-empty-state i {
+    font-size: 1.8rem;
+    color: var(--status-active);
+}
+
+@media (max-width: 760px) {
+    .chart-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============ CHAT DA IA — feed de conversa ============ */
 .ai-chat-section {
     margin-bottom: 32px;
 }
@@ -290,21 +342,43 @@ body {
     transform: none;
 }
 
-/* PÍLULAS / CHIPS DE SELEÇÃO DE CATEGORIA */
+/* PÍLULAS / CHIPS DE SELEÇÃO DE CATEGORIA — organizadas em blocos */
 .category-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-line);
+    border-radius: 16px;
+}
+
+.selector-block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.chip-row {
     display: flex;
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
-    padding-left: 6px;
 }
 
 .selector-label {
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     color: var(--text-muted);
-    font-weight: 600;
-    margin-right: 4px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
+
+.selector-label--gasto { color: var(--purple-neon); }
+.selector-label--invest { color: var(--status-active); }
 
 .chip-btn {
     background: rgba(255, 255, 255, 0.05);
@@ -334,7 +408,16 @@ body {
     box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
 }
 
+/* Chips do grupo de investimento ganham o verde ao ficar ativos,
+   pra reforçar visualmente que são um tipo diferente de gasto. */
+.chip-btn--invest.active {
+    background: linear-gradient(135deg, #10b981, #34d399);
+    border-color: #34d399;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+}
+
 .btn-add-category {
+    align-self: flex-start;
     border: 1px dashed var(--purple-light);
     color: var(--purple-neon);
     background: rgba(168, 85, 247, 0.1);
@@ -344,7 +427,7 @@ body {
     background: rgba(168, 85, 247, 0.3);
 }
 
-/* Histórico & Filtro */
+/* ============ HISTÓRICO & FILTROS ============ */
 .history-section {
     margin-top: 20px;
 }
@@ -364,6 +447,43 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+.history-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* Abas Todos / Gastos / Investimentos */
+.history-type-tabs {
+    display: flex;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-line);
+    padding: 4px;
+    border-radius: 12px;
+}
+
+.tab-chip {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.tab-chip:hover { color: var(--white-pure); }
+.tab-chip.active {
+    background: linear-gradient(135deg, var(--purple-main), var(--purple-light));
+    color: var(--white-pure);
+}
+.tab-chip[data-type="investimento"].active {
+    background: linear-gradient(135deg, #10b981, #34d399);
 }
 
 .history-filter-wrapper {
@@ -390,7 +510,8 @@ body {
     cursor: pointer;
 }
 
-.history-filter-select option {
+.history-filter-select option,
+.history-filter-select optgroup {
     background: #150d2a;
     color: var(--white-pure);
 }
@@ -432,6 +553,13 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
+}
+
+/* Ícone verde para itens de investimento no extrato */
+.history-icon--invest {
+    background: rgba(16, 185, 129, 0.18);
+    color: var(--status-active);
 }
 
 .history-details h4 {
@@ -442,6 +570,40 @@ body {
 .history-details span {
     font-size: 0.75rem;
     color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+/* Selo "Gasto" / "Investimento" ao lado de cada item do extrato */
+.history-tag {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 8px;
+    font-size: 0.65rem;
+    font-style: normal;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+.history-tag.tag-gasto {
+    background: rgba(168, 85, 247, 0.18);
+    color: var(--purple-neon);
+}
+.history-tag.tag-invest {
+    background: rgba(16, 185, 129, 0.18);
+    color: var(--status-active);
+}
+
+/* Valor acumulado, mostrado em cada lançamento quando a aba
+   "Investimentos" está ativa no extrato */
+.history-cumulative {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--status-active);
+    background: rgba(16, 185, 129, 0.1);
+    padding: 1px 8px;
+    border-radius: 8px;
 }
 
 .history-right-side {
@@ -478,7 +640,7 @@ body {
     font-size: 0.85rem;
 }
 
-/* Modal */
+/* ============ MODAL ============ */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -542,6 +704,42 @@ body {
     border-color: var(--purple-neon);
 }
 
+/* Escolha entre Gasto / Investimento ao criar categoria nova */
+.type-toggle {
+    display: flex;
+    gap: 8px;
+}
+
+.type-btn {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-line);
+    color: var(--text-muted);
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+.type-btn:hover {
+    border-color: var(--purple-neon);
+    color: var(--white-pure);
+}
+.type-btn.active {
+    background: linear-gradient(135deg, var(--purple-main), var(--purple-light));
+    border-color: var(--purple-neon);
+    color: var(--white-pure);
+}
+.type-btn[data-type="investimento"].active {
+    background: linear-gradient(135deg, #10b981, #34d399);
+    border-color: #34d399;
+}
+
 .modal-actions {
     display: flex;
     justify-content: flex-end;
@@ -571,4 +769,5 @@ body {
 
 @media (max-width: 560px) {
     .chat-bubble { max-width: 88%; }
+    .total-display { font-size: 0.82rem; }
 }

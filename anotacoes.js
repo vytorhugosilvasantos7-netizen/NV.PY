@@ -48,17 +48,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /* =========================================================
        2. CATEGORIAS PADRÃO E PERSISTÊNCIA
+       Cada categoria agora tem um "type": 'gasto' ou 'investimento'.
+       Isso é o que permite separar tudo em dois gráficos e dois
+       grupos no extrato, em vez de misturar tudo junto.
        ========================================================= */
     const DEFAULT_CATEGORIES = [
-        { name: 'Cartão de Crédito', slug: 'credito', color: '#a855f7', icon: 'fa-credit-card' },
-        { name: 'Cartão de Débito', slug: 'debito', color: '#7c3aed', icon: 'fa-wallet' },
-        { name: 'Alimentação', slug: 'alimentacao', color: '#c026d3', icon: 'fa-utensils' },
-        { name: 'Transporte', slug: 'transporte', color: '#38bdf8', icon: 'fa-car' },
-        { name: 'Moradia', slug: 'moradia', color: '#ec4899', icon: 'fa-house' },
-        { name: 'Dinheiro', slug: 'dinheiro', color: '#6366f1', icon: 'fa-money-bill-wave' },
-        { name: 'Investimentos', slug: 'investimento', color: '#10b981', icon: 'fa-chart-line' },
-        { name: 'Negócios', slug: 'negocios', color: '#f59e0b', icon: 'fa-briefcase' },
-        { name: 'Outros', slug: 'outros', color: '#6b7280', icon: 'fa-circle-question' }
+        { name: 'Cartão de Crédito', slug: 'credito', color: '#a855f7', icon: 'fa-credit-card', type: 'gasto' },
+        { name: 'Cartão de Débito', slug: 'debito', color: '#7c3aed', icon: 'fa-wallet', type: 'gasto' },
+        { name: 'Alimentação', slug: 'alimentacao', color: '#c026d3', icon: 'fa-utensils', type: 'gasto' },
+        { name: 'Transporte', slug: 'transporte', color: '#38bdf8', icon: 'fa-car', type: 'gasto' },
+        { name: 'Moradia', slug: 'moradia', color: '#ec4899', icon: 'fa-house', type: 'gasto' },
+        { name: 'Dinheiro', slug: 'dinheiro', color: '#6366f1', icon: 'fa-money-bill-wave', type: 'gasto' },
+        { name: 'Investimentos', slug: 'investimento', color: '#10b981', icon: 'fa-chart-line', type: 'investimento' },
+        { name: 'Negócios', slug: 'negocios', color: '#f59e0b', icon: 'fa-briefcase', type: 'gasto' },
+        { name: 'Outros', slug: 'outros', color: '#6b7280', icon: 'fa-circle-question', type: 'gasto' }
     ];
 
     /* Dicionário de palavras-chave por categoria — usado no reconhecimento
@@ -79,57 +82,178 @@ document.addEventListener('DOMContentLoaded', () => {
     let categoriesList = JSON.parse(localStorage.getItem('finance_categories')) || DEFAULT_CATEGORIES;
     let transactions = JSON.parse(localStorage.getItem('finance_transactions')) || [];
 
+    // Migração: dados salvos antes dessa atualização não tinham "type".
+    // Aqui a gente preenche isso automaticamente pra nada quebrar.
+    categoriesList = categoriesList.map(c => ({
+        ...c,
+        type: c.type === 'investimento' || c.slug === 'investimento' ? 'investimento' : 'gasto'
+    }));
+    transactions = transactions.map(t => ({
+        ...t,
+        categoryType: t.categoryType || (t.categoryName === 'Investimentos' ? 'investimento' : 'gasto')
+    }));
+
     function saveState() {
         localStorage.setItem('finance_categories', JSON.stringify(categoriesList));
         localStorage.setItem('finance_transactions', JSON.stringify(transactions));
     }
 
     /* =========================================================
-       3. GRÁFICO (CHART.JS)
+       3. GRÁFICOS (CHART.JS)
+       Gastos: rosquinha (mostra a divisão por categoria).
+       Investimentos: linha acumulada — cada aporte soma ao total
+       anterior, então a linha sempre sobe conforme você investe.
        ========================================================= */
-    const ctxChart = document.getElementById('financeChart').getContext('2d');
-
-    const financeChart = new Chart(ctxChart, {
-        type: 'doughnut',
-        data: {
-            labels: [],
-            datasets: [{
-                data: [],
-                backgroundColor: [],
-                borderColor: '#0a0518',
-                borderWidth: 3
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'right',
-                    labels: { color: '#cbd5e1', font: { size: 12 } }
+    function createDoughnutChart(canvasId) {
+        const chartCtx = document.getElementById(canvasId).getContext('2d');
+        return new Chart(chartCtx, {
+            type: 'doughnut',
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    backgroundColor: [],
+                    borderColor: '#0a0518',
+                    borderWidth: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { color: '#cbd5e1', font: { size: 12 } }
+                    }
                 }
             }
-        }
-    });
+        });
+    }
+
+    function createInvestLineChart(canvasId) {
+        const chartCtx = document.getElementById(canvasId).getContext('2d');
+        return new Chart(chartCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Total investido acumulado',
+                    data: [],
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.18)',
+                    fill: true,
+                    tension: 0.35,
+                    borderWidth: 3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: '#10b981',
+                    pointBorderColor: '#0a0518',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { intersect: false, mode: 'index' },
+                scales: {
+                    x: {
+                        ticks: { color: '#cbd5e1', font: { size: 10 }, maxRotation: 0, autoSkip: true },
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#cbd5e1',
+                            font: { size: 10 },
+                            callback: (value) => `R$ ${value}`
+                        },
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => `Acumulado: R$ ${context.parsed.y.toFixed(2).replace('.', ',')}`
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    const financeChartGastos = createDoughnutChart('financeChartGastos');
+    const financeChartInvest = createInvestLineChart('financeChartInvest');
+
+    function fillChart(chart, cats, categoryTotals) {
+        const labels = [];
+        const data = [];
+        const colors = [];
+
+        cats.forEach(cat => {
+            const val = categoryTotals[cat.name] || 0;
+            if (val > 0) {
+                labels.push(cat.name);
+                data.push(val);
+                colors.push(cat.color);
+            }
+        });
+
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = data;
+        chart.data.datasets[0].backgroundColor = colors;
+        chart.update();
+    }
+
+    /* Monta a linha do tempo acumulada dos investimentos: ordena do
+       mais antigo pro mais novo e vai somando cada aporte, pra linha
+       sempre subir a cada novo investimento lançado. */
+    function fillInvestLineChart(chart, investTransactions) {
+        const chronological = [...investTransactions].sort((a, b) => a.id - b.id);
+
+        const labels = ['Início'];
+        const data = [0];
+        let running = 0;
+
+        chronological.forEach((t, index) => {
+            running += t.amount;
+            const shortDate = (t.date || '').replace('Hoje às ', '');
+            labels.push(shortDate || `Aporte ${index + 1}`);
+            data.push(Number(running.toFixed(2)));
+        });
+
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = data;
+        chart.update();
+    }
 
     /* =========================================================
        4. ELEMENTOS DA INTERFACE
        ========================================================= */
     const categorySelector = document.getElementById('categorySelector');
+    const gastoChipsRow = document.getElementById('gastoChipsRow');
+    const investChipsRow = document.getElementById('investChipsRow');
     const btnAddCategory = document.getElementById('btnAddCategory');
     const categoryModal = document.getElementById('categoryModal');
     const btnCancelCategory = document.getElementById('btnCancelCategory');
     const btnConfirmCategory = document.getElementById('btnConfirmCategory');
     const newCategoryInput = document.getElementById('newCategoryInput');
+    const categoryTypeToggle = document.getElementById('categoryTypeToggle');
     const historyFilter = document.getElementById('historyFilter');
+    const historyTypeTabs = document.getElementById('historyTypeTabs');
 
     const textInput = document.getElementById('textInput');
     const btnSend = document.getElementById('btnSend');
     const chatFeed = document.getElementById('aiChatFeed');
     const historyList = document.getElementById('historyList');
-    const totalDisplay = document.getElementById('totalDisplay');
+    const totalDisplayGastos = document.getElementById('totalDisplayGastos');
+    const totalDisplayInvest = document.getElementById('totalDisplayInvest');
+    const investChartWrapper = document.getElementById('investChartWrapper');
+    const investEmptyState = document.getElementById('investEmptyState');
 
     let selectedCategory = 'auto';
+    let newCategoryType = 'gasto';
+    let historyTypeFilter = 'all'; // 'all' | 'gasto' | 'investimento'
 
     /* =========================================================
        5. FEED DE CONVERSA
@@ -188,12 +312,14 @@ document.addEventListener('DOMContentLoaded', () => {
     addChatMessage(
         'ai',
         '<h4 style="color:var(--purple-neon);font-size:0.92rem;margin-bottom:4px;">Olá! Sou sua IA financeira 👋</h4>' +
-        '<p>Digite um gasto (ex: <em>"R$ 45 almoço"</em>) e eu categorizo e lanço automaticamente. Também respondo dúvidas sobre organização financeira.</p>',
+        '<p>Digite um gasto (ex: <em>"R$ 45 almoço"</em>) ou investimento (ex: <em>"R$ 200 tesouro selic"</em>) e eu categorizo e lanço automaticamente. Também respondo dúvidas sobre organização financeira.</p>',
         { showTime: false }
     );
 
     /* =========================================================
        6. CHIPS DE CATEGORIA E FILTROS
+       O dropdown de categorias agora agrupa Gastos e Investimentos
+       separadamente, pra ficar mais fácil de achar.
        ========================================================= */
     function renderCustomChipsAndFilters() {
         const existingCustomChips = categorySelector.querySelectorAll('.custom-chip');
@@ -201,23 +327,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
         historyFilter.innerHTML = '<option value="all">Todas as categorias</option>';
 
+        const gastoGroup = document.createElement('optgroup');
+        gastoGroup.label = 'Gastos';
+        const investGroup = document.createElement('optgroup');
+        investGroup.label = 'Investimentos';
+
         categoriesList.forEach(cat => {
             const option = document.createElement('option');
             option.value = cat.name;
             option.textContent = cat.name;
-            historyFilter.appendChild(option);
+
+            const isInvest = cat.type === 'investimento';
+            if (isInvest) {
+                investGroup.appendChild(option);
+            } else {
+                gastoGroup.appendChild(option);
+            }
 
             const isDefault = DEFAULT_CATEGORIES.some(dc => dc.slug === cat.slug);
             if (!isDefault) {
                 const newChip = document.createElement('button');
                 newChip.type = 'button';
-                newChip.className = 'chip-btn custom-chip';
+                newChip.className = `chip-btn custom-chip${isInvest ? ' chip-btn--invest' : ''}`;
                 newChip.setAttribute('data-category', cat.slug);
                 newChip.setAttribute('data-fullname', cat.name);
                 newChip.innerHTML = `<i class="fa-solid ${cat.icon || 'fa-briefcase'}"></i> ${cat.name}`;
-                categorySelector.insertBefore(newChip, btnAddCategory);
+
+                // Cada categoria nova cai no grupo certo (Gastos ou Investimentos)
+                const targetRow = isInvest ? investChipsRow : gastoChipsRow;
+                if (targetRow) {
+                    targetRow.appendChild(newChip);
+                } else {
+                    categorySelector.insertBefore(newChip, btnAddCategory);
+                }
             }
         });
+
+        if (gastoGroup.children.length) historyFilter.appendChild(gastoGroup);
+        if (investGroup.children.length) historyFilter.appendChild(investGroup);
 
         setupChipEvents();
     }
@@ -234,64 +381,93 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /* =========================================================
-       7. GRÁFICO, TOTAL E EXTRATO
+       7. GRÁFICOS, TOTAIS E EXTRATO
        ========================================================= */
     function updateUI() {
         const categoryTotals = {};
         categoriesList.forEach(c => categoryTotals[c.name] = 0);
 
-        let overallTotal = 0;
+        let totalGastos = 0;
+        let totalInvest = 0;
 
         transactions.forEach(t => {
             categoryTotals[t.categoryName] = (categoryTotals[t.categoryName] || 0) + t.amount;
-            overallTotal += t.amount;
-        });
-
-        const activeLabels = [];
-        const activeData = [];
-        const activeColors = [];
-
-        categoriesList.forEach(cat => {
-            const val = categoryTotals[cat.name] || 0;
-            if (val > 0) {
-                activeLabels.push(cat.name);
-                activeData.push(val);
-                activeColors.push(cat.color);
+            if ((t.categoryType || 'gasto') === 'investimento') {
+                totalInvest += t.amount;
+            } else {
+                totalGastos += t.amount;
             }
         });
 
-        financeChart.data.labels = activeLabels;
-        financeChart.data.datasets[0].data = activeData;
-        financeChart.data.datasets[0].backgroundColor = activeColors;
-        financeChart.update();
+        fillChart(financeChartGastos, categoriesList.filter(c => c.type !== 'investimento'), categoryTotals);
 
-        totalDisplay.textContent = `Total Registrado: R$ ${overallTotal.toFixed(2).replace('.', ',')}`;
+        const investTransactions = transactions.filter(t => (t.categoryType || 'gasto') === 'investimento');
+        fillInvestLineChart(financeChartInvest, investTransactions);
+
+        // Se ainda não existe nenhum investimento lançado, mostra uma
+        // mensagem no lugar de um gráfico vazio (fica mais organizado).
+        if (investChartWrapper && investEmptyState) {
+            const hasInvestData = totalInvest > 0;
+            investChartWrapper.style.display = hasInvestData ? 'flex' : 'none';
+            investEmptyState.style.display = hasInvestData ? 'none' : 'flex';
+        }
+
+        totalDisplayGastos.textContent = `Total em Gastos: R$ ${totalGastos.toFixed(2).replace('.', ',')}`;
+        totalDisplayInvest.textContent = `Total Investido: R$ ${totalInvest.toFixed(2).replace('.', ',')}`;
 
         renderHistoryList();
     }
 
     function renderHistoryList() {
-        const filterValue = historyFilter.value;
+        const categoryFilterValue = historyFilter.value;
         historyList.innerHTML = '';
 
-        const filteredTransactions = filterValue === 'all'
-            ? transactions
-            : transactions.filter(t => t.categoryName === filterValue);
+        let filteredTransactions = transactions;
+
+        if (historyTypeFilter !== 'all') {
+            filteredTransactions = filteredTransactions.filter(t => (t.categoryType || 'gasto') === historyTypeFilter);
+        }
+
+        if (categoryFilterValue !== 'all') {
+            filteredTransactions = filteredTransactions.filter(t => t.categoryName === categoryFilterValue);
+        }
 
         if (filteredTransactions.length === 0) {
             historyList.innerHTML = '<div class="empty-state">Nenhum lançamento encontrado.</div>';
             return;
         }
 
+        // Quando a aba "Investimentos" está ativa, calcula o acumulado até
+        // cada aporte (em ordem cronológica) para mostrar a evolução no extrato.
+        let cumulativeById = null;
+        if (historyTypeFilter === 'investimento') {
+            cumulativeById = new Map();
+            const chronological = [...filteredTransactions].sort((a, b) => a.id - b.id);
+            let running = 0;
+            chronological.forEach(t => {
+                running += t.amount;
+                cumulativeById.set(t.id, running);
+            });
+        }
+
         filteredTransactions.forEach((t) => {
+            const isInvest = (t.categoryType || 'gasto') === 'investimento';
+            const cumulativeBadge = cumulativeById && cumulativeById.has(t.id)
+                ? `<span class="history-cumulative">Acumulado: R$ ${cumulativeById.get(t.id).toFixed(2).replace('.', ',')}</span>`
+                : '';
+
             const item = document.createElement('div');
             item.className = 'history-item';
             item.innerHTML = `
                 <div class="history-info">
-                    <div class="history-icon"><i class="fa-solid ${t.icon}"></i></div>
+                    <div class="history-icon ${isInvest ? 'history-icon--invest' : ''}"><i class="fa-solid ${t.icon}"></i></div>
                     <div class="history-details">
                         <h4>${t.description}</h4>
-                        <span>${t.categoryName} • ${t.date}</span>
+                        <span>
+                            ${t.categoryName} • ${t.date}
+                            <em class="history-tag ${isInvest ? 'tag-invest' : 'tag-gasto'}">${isInvest ? 'Investimento' : 'Gasto'}</em>
+                            ${cumulativeBadge}
+                        </span>
                     </div>
                 </div>
                 <div class="history-right-side">
@@ -321,8 +497,22 @@ document.addEventListener('DOMContentLoaded', () => {
         replyWithDelay('Lançamento removido do seu extrato e recalculado no gráfico com sucesso!', 300);
     }
 
+    // Abas "Todos / Gastos / Investimentos" no extrato
+    if (historyTypeTabs) {
+        historyTypeTabs.querySelectorAll('.tab-chip').forEach(btn => {
+            btn.addEventListener('click', () => {
+                historyTypeTabs.querySelectorAll('.tab-chip').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                historyTypeFilter = btn.getAttribute('data-type');
+                renderHistoryList();
+            });
+        });
+    }
+
     /* =========================================================
        8. MODAL & CATEGORIAS CUSTOMIZADAS
+       Agora dá pra escolher se a categoria nova é um Gasto ou
+       um Investimento, direto no modal.
        ========================================================= */
     btnAddCategory.addEventListener('click', () => {
         categoryModal.classList.add('active');
@@ -332,7 +522,27 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCancelCategory.addEventListener('click', () => {
         categoryModal.classList.remove('active');
         newCategoryInput.value = '';
+        resetCategoryTypeToggle();
     });
+
+    if (categoryTypeToggle) {
+        categoryTypeToggle.querySelectorAll('.type-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                categoryTypeToggle.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                newCategoryType = btn.getAttribute('data-type');
+            });
+        });
+    }
+
+    function resetCategoryTypeToggle() {
+        newCategoryType = 'gasto';
+        if (categoryTypeToggle) {
+            categoryTypeToggle.querySelectorAll('.type-btn').forEach(b => {
+                b.classList.toggle('active', b.getAttribute('data-type') === 'gasto');
+            });
+        }
+    }
 
     btnConfirmCategory.addEventListener('click', createCustomCategory);
     newCategoryInput.addEventListener('keypress', (e) => {
@@ -347,8 +557,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const exists = categoriesList.some(c => c.name.toLowerCase() === catName.toLowerCase());
 
         if (!exists) {
-            const randomColor = `hsl(${Math.floor(Math.random() * 60) + 250}, 80%, 65%)`;
-            categoriesList.push({ name: catName, slug, color: randomColor, icon: 'fa-briefcase' });
+            const isInvest = newCategoryType === 'investimento';
+            // Tons de verde para investimento, tons de roxo para gasto —
+            // assim a cor já ajuda a diferenciar de longe.
+            const randomColor = isInvest
+                ? `hsl(${Math.floor(Math.random() * 40) + 140}, 55%, 48%)`
+                : `hsl(${Math.floor(Math.random() * 60) + 250}, 80%, 65%)`;
+
+            categoriesList.push({
+                name: catName,
+                slug,
+                color: randomColor,
+                icon: isInvest ? 'fa-chart-line' : 'fa-briefcase',
+                type: newCategoryType
+            });
             saveState();
             renderCustomChipsAndFilters();
             updateUI();
@@ -359,6 +581,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         categoryModal.classList.remove('active');
         newCategoryInput.value = '';
+        resetCategoryTypeToggle();
     }
 
     /* =========================================================
@@ -464,14 +687,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!matchedCategory) {
             matchedCategory = categoriesList.find(c => c.slug === 'outros')
-                || { name: 'Outros', slug: 'outros', color: '#6b7280', icon: 'fa-circle-question' };
+                || { name: 'Outros', slug: 'outros', color: '#6b7280', icon: 'fa-circle-question', type: 'gasto' };
         }
+
+        const isInvest = (matchedCategory.type || 'gasto') === 'investimento';
 
         const newTransaction = {
             id: Date.now(),
             description: rawText,
             amount: value,
             categoryName: matchedCategory.name,
+            categoryType: matchedCategory.type || 'gasto',
             icon: matchedCategory.icon || 'fa-wallet',
             date: `Hoje às ${formatTime()}`
         };
@@ -481,7 +707,9 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUI();
 
         const formattedValue = value.toFixed(2).replace('.', ',');
-        let message = `Lançamento de <strong>R$ ${formattedValue}</strong> registrado em <strong>${matchedCategory.name}</strong>.`;
+        let message = isInvest
+            ? `Investimento de <strong>R$ ${formattedValue}</strong> registrado em <strong>${matchedCategory.name}</strong>. 📈`
+            : `Lançamento de <strong>R$ ${formattedValue}</strong> registrado em <strong>${matchedCategory.name}</strong>.`;
 
         if (autoDetected && matchedCategory.slug === 'outros') {
             message += ' Não reconheci a categoria pelo texto — se quiser, escolha um chip antes de lançar o próximo item.';
@@ -489,11 +717,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const categoryTotal = transactions
                 .filter(t => t.categoryName === matchedCategory.name)
                 .reduce((acc, t) => acc + t.amount, 0);
-            const overallTotal = transactions.reduce((acc, t) => acc + t.amount, 0);
-            const share = overallTotal > 0 ? Math.round((categoryTotal / overallTotal) * 100) : 0;
+            const groupTotal = transactions
+                .filter(t => (t.categoryType || 'gasto') === (matchedCategory.type || 'gasto'))
+                .reduce((acc, t) => acc + t.amount, 0);
+            const share = groupTotal > 0 ? Math.round((categoryTotal / groupTotal) * 100) : 0;
 
             if (share >= 40) {
-                message += ` Só de olho: <strong>${matchedCategory.name}</strong> já representa ${share}% de tudo que você registrou.`;
+                const groupLabel = isInvest ? 'do que você investiu' : 'dos seus gastos';
+                message += ` Só de olho: <strong>${matchedCategory.name}</strong> já representa ${share}% ${groupLabel}.`;
             }
         }
 
@@ -508,7 +739,7 @@ document.addEventListener('DOMContentLoaded', () => {
             { keys: ['reserva', 'emergência', 'emergencia'], text: '<strong>Reserva de emergência:</strong> o ideal é ter de 3 a 6 meses do seu custo de vida guardado em algo líquido, como Tesouro Selic ou CDB com liquidez diária.' },
             { keys: ['meta', 'objetivo', 'planejamento'], text: '<strong>Planejamento:</strong> metas financeiras funcionam melhor quando têm valor e prazo definidos — em vez de "guardar dinheiro", tente "guardar R$ 300/mês por 6 meses".' },
             { keys: ['cartão', 'cartao', 'fatura'], text: '<strong>Cartão de crédito:</strong> tente nunca pagar apenas o mínimo da fatura — os juros do rotativo estão entre os mais altos do mercado.' },
-            { keys: ['oi', 'olá', 'ola', 'bom dia', 'boa tarde', 'boa noite'], text: 'Olá! Pode me contar um gasto (ex: "R$ 30 uber") ou perguntar sobre organização financeira, dívidas, reserva de emergência ou metas.' },
+            { keys: ['oi', 'olá', 'ola', 'bom dia', 'boa tarde', 'boa noite'], text: 'Olá! Pode me contar um gasto (ex: "R$ 30 uber"), um investimento (ex: "R$ 200 cdb") ou perguntar sobre organização financeira, dívidas, reserva de emergência ou metas.' },
         ];
 
         const found = tips.find(tip => tip.keys.some(k => query.includes(k)));
