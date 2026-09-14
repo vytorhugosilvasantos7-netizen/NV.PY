@@ -101,19 +101,18 @@
             <!-- FORMULÁRIO 1: LOGIN -->
             <form id="loginForm" class="auth-form active" onsubmit="handleLogin(event)" novalidate>
                 <div class="input-field">
-                    <label for="loginEmail">E-mail de acesso</label>
+                    <label for="loginUsername">Nome ou apelido</label>
                     <div class="input-box">
-                        <i class="fa-regular fa-envelope input-icon"></i>
+                        <i class="fa-regular fa-user input-icon"></i>
                         <input
-                            type="email"
-                            id="loginEmail"
-                            name="email"
-                            placeholder="seuemail@dominio.com"
-                            autocomplete="email"
-                            inputmode="email"
+                            type="text"
+                            id="loginUsername"
+                            name="username"
+                            placeholder="Digite seu nome ou apelido"
+                            autocomplete="username"
                             required>
                     </div>
-                    <span class="field-hint" id="loginEmailHint"></span>
+                    <span class="field-hint" id="loginUsernameHint"></span>
                 </div>
 
                 <div class="input-field">
@@ -153,33 +152,19 @@
             <!-- FORMULÁRIO 2: CRIAR CONTA -->
             <form id="registerForm" class="auth-form" onsubmit="handleRegister(event)" novalidate>
                 <div class="input-field">
-                    <label for="regName">Nome completo</label>
+                    <label for="regName">Nome ou apelido</label>
                     <div class="input-box">
                         <i class="fa-regular fa-user input-icon"></i>
                         <input
                             type="text"
                             id="regName"
                             name="name"
-                            placeholder="Seu nome completo"
-                            autocomplete="name"
-                            required>
+                            placeholder="Escolha um nome ou apelido"
+                            autocomplete="username"
+                            required
+                            minlength="3">
                     </div>
-                </div>
-
-                <div class="input-field">
-                    <label for="regEmail">E-mail de cadastro</label>
-                    <div class="input-box">
-                        <i class="fa-regular fa-envelope input-icon"></i>
-                        <input
-                            type="email"
-                            id="regEmail"
-                            name="email"
-                            placeholder="seuemail@dominio.com"
-                            autocomplete="email"
-                            inputmode="email"
-                            required>
-                    </div>
-                    <span class="field-hint" id="regEmailHint"></span>
+                    <span class="field-hint" id="regNameHint">É esse nome que você vai usar para entrar depois.</span>
                 </div>
 
                 <div class="input-field">
@@ -237,26 +222,25 @@
 
             <!-- FORMULÁRIO 3: ESQUECI A SENHA -->
             <form id="forgotForm" class="auth-form" onsubmit="handleForgot(event)" novalidate>
-                <p class="form-desc">Digite seu e-mail cadastrado. Se ele existir na nossa base, mostramos os próximos passos para recuperar o acesso.</p>
+                <p class="form-desc">Como o acesso aqui usa nome/apelido em vez de e-mail, não é possível recuperar a senha automaticamente. Digite seu nome abaixo para confirmar se ele existe nesse dispositivo.</p>
 
                 <div class="input-field">
-                    <label for="forgotEmail">E-mail de acesso</label>
+                    <label for="forgotUsername">Nome ou apelido</label>
                     <div class="input-box">
-                        <i class="fa-regular fa-envelope input-icon"></i>
+                        <i class="fa-regular fa-user input-icon"></i>
                         <input
-                            type="email"
-                            id="forgotEmail"
-                            name="email"
-                            placeholder="seuemail@dominio.com"
-                            autocomplete="email"
-                            inputmode="email"
+                            type="text"
+                            id="forgotUsername"
+                            name="username"
+                            placeholder="Seu nome ou apelido"
+                            autocomplete="username"
                             required>
                     </div>
                 </div>
 
                 <button type="submit" class="btn-primary" id="forgotSubmitBtn">
-                    <span class="btn-label">Enviar Link de Recuperação</span>
-                    <i class="fa-solid fa-paper-plane"></i>
+                    <span class="btn-label">Verificar Conta</span>
+                    <i class="fa-solid fa-magnifying-glass"></i>
                     <span class="spinner"></span>
                 </button>
 

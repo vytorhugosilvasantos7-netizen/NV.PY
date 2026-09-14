@@ -74,12 +74,18 @@ function showToast(message, type = 'info', duration = 4200) {
 }
 
 /* =========================================================
-   VALIDAÇÃO DE E-MAIL E SENHA
+   VALIDAÇÃO DE NOME/APELIDO E SENHA
    ========================================================= */
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+// Aceita letras (com acentos), números, espaço, ponto, hífen e underline.
+const USERNAME_REGEX = /^[\p{L}0-9 ._-]{3,40}$/u;
 
-function isValidEmail(email) {
-    return EMAIL_REGEX.test(email.trim());
+function isValidUsername(name) {
+    return USERNAME_REGEX.test(name.trim());
+}
+
+// Normaliza o nome para comparação (ignora maiúsculas/minúsculas e espaços extras)
+function normalizeUsername(name) {
+    return name.trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
 function setFieldState(inputEl, hintEl, state, message = '') {
@@ -98,29 +104,29 @@ function setFieldState(inputEl, hintEl, state, message = '') {
     }
 }
 
-function attachLiveEmailValidation(inputId, hintId) {
+function attachLiveUsernameValidation(inputId, hintId, validMessage) {
     const input = document.getElementById(inputId);
     const hint = document.getElementById(hintId);
     if (!input) return;
 
     input.addEventListener('blur', () => {
         if (!input.value) { setFieldState(input, hint, 'neutral'); return; }
-        if (isValidEmail(input.value)) {
-            setFieldState(input, hint, 'valid');
+        if (isValidUsername(input.value)) {
+            setFieldState(input, hint, 'valid', validMessage || '');
         } else {
-            setFieldState(input, hint, 'invalid', 'Digite um e-mail válido (ex: nome@dominio.com).');
+            setFieldState(input, hint, 'invalid', 'Use pelo menos 3 caracteres (letras, números, espaço, . _ ou -).');
         }
     });
 
     input.addEventListener('input', () => {
-        if (input.classList.contains('field-invalid') && isValidEmail(input.value)) {
-            setFieldState(input, hint, 'valid');
+        if (input.classList.contains('field-invalid') && isValidUsername(input.value)) {
+            setFieldState(input, hint, 'valid', validMessage || '');
         }
     });
 }
 
-attachLiveEmailValidation('loginEmail', 'loginEmailHint');
-attachLiveEmailValidation('regEmail', 'regEmailHint');
+attachLiveUsernameValidation('loginUsername', 'loginUsernameHint');
+attachLiveUsernameValidation('regName', 'regNameHint', 'É esse nome que você vai usar para entrar depois.');
 
 /* Força da senha (feedback visual) */
 function calculatePasswordStrength(password) {
@@ -202,7 +208,7 @@ function switchTab(tabName) {
         document.getElementById('loginForm')?.classList.add('active');
         buttons.forEach(b => b.classList.toggle('active', b.dataset.tab === 'login'));
         tabsWrapper?.classList.remove('tab-register');
-        document.getElementById('loginEmail')?.focus();
+        document.getElementById('loginUsername')?.focus();
     } else if (tabName === 'register') {
         document.getElementById('registerForm')?.classList.add('active');
         buttons.forEach(b => b.classList.toggle('active', b.dataset.tab === 'register'));
@@ -211,7 +217,7 @@ function switchTab(tabName) {
     } else if (tabName === 'forgot') {
         document.getElementById('forgotForm')?.classList.add('active');
         buttons.forEach(b => b.classList.remove('active'));
-        document.getElementById('forgotEmail')?.focus();
+        document.getElementById('forgotUsername')?.focus();
     }
 }
 
@@ -230,28 +236,28 @@ function setButtonLoading(button, isLoading) {
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 30000;
 
-function getAttemptState(email) {
-    const raw = localStorage.getItem(`nvpey_attempts_${email}`);
+function getAttemptState(usernameKey) {
+    const raw = localStorage.getItem(`nvpey_attempts_${usernameKey}`);
     return raw ? JSON.parse(raw) : { count: 0, lockedUntil: 0 };
 }
 
-function saveAttemptState(email, state) {
-    localStorage.setItem(`nvpey_attempts_${email}`, JSON.stringify(state));
+function saveAttemptState(usernameKey, state) {
+    localStorage.setItem(`nvpey_attempts_${usernameKey}`, JSON.stringify(state));
 }
 
-function registerFailedAttempt(email) {
-    const state = getAttemptState(email);
+function registerFailedAttempt(usernameKey) {
+    const state = getAttemptState(usernameKey);
     state.count += 1;
     if (state.count >= MAX_ATTEMPTS) {
         state.lockedUntil = Date.now() + LOCKOUT_MS;
         state.count = 0;
     }
-    saveAttemptState(email, state);
+    saveAttemptState(usernameKey, state);
     return state;
 }
 
-function clearAttempts(email) {
-    localStorage.removeItem(`nvpey_attempts_${email}`);
+function clearAttempts(usernameKey) {
+    localStorage.removeItem(`nvpey_attempts_${usernameKey}`);
 }
 
 /* =========================================================
@@ -261,19 +267,14 @@ async function handleRegister(event) {
     event.preventDefault();
 
     const name = document.getElementById('regName').value.trim();
-    const email = document.getElementById('regEmail').value.trim().toLowerCase();
     const rawPass = document.getElementById('regPassword').value;
     const confirmPass = document.getElementById('regPasswordConfirm').value;
     const termsAccepted = document.getElementById('acceptTerms').checked;
     const submitBtn = document.getElementById('registerSubmitBtn');
 
-    if (!name) {
-        showToast('Informe seu nome completo.', 'error');
-        return;
-    }
-    if (!isValidEmail(email)) {
-        setFieldState(document.getElementById('regEmail'), document.getElementById('regEmailHint'), 'invalid', 'Digite um e-mail válido (ex: nome@dominio.com).');
-        showToast('Digite um e-mail válido.', 'error');
+    if (!isValidUsername(name)) {
+        setFieldState(document.getElementById('regName'), document.getElementById('regNameHint'), 'invalid', 'Use pelo menos 3 caracteres (letras, números, espaço, . _ ou -).');
+        showToast('Escolha um nome ou apelido válido (mínimo 3 caracteres).', 'error');
         return;
     }
     if (rawPass.length < 6) {
@@ -297,22 +298,23 @@ async function handleRegister(event) {
 
     try {
         const users = JSON.parse(localStorage.getItem('nvpey_users') || '[]');
+        const usernameKey = normalizeUsername(name);
 
-        const userExists = users.some(u => u.email === email);
+        const userExists = users.some(u => normalizeUsername(u.name) === usernameKey);
         if (userExists) {
-            showToast('Este e-mail já possui uma conta cadastrada.', 'error');
+            showToast('Esse nome já está em uso. Escolha outro nome ou apelido.', 'error');
             return;
         }
 
         const salt = generateSalt();
         const passwordHash = await hashPassword(rawPass, salt);
 
-        users.push({ name, email, salt, passHash: passwordHash });
+        users.push({ name, salt, passHash: passwordHash });
         localStorage.setItem('nvpey_users', JSON.stringify(users));
 
         showToast('Conta criada com sucesso! Faça login para continuar.', 'success');
 
-        document.getElementById('loginEmail').value = email;
+        document.getElementById('loginUsername').value = name;
         document.getElementById('loginPassword').value = '';
         document.getElementById('regPasswordConfirm').value = '';
         document.getElementById('acceptTerms').checked = false;
@@ -330,17 +332,19 @@ async function handleRegister(event) {
 async function handleLogin(event) {
     event.preventDefault();
 
-    const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+    const rawName = document.getElementById('loginUsername').value;
     const rawPass = document.getElementById('loginPassword').value;
     const submitBtn = document.getElementById('loginSubmitBtn');
 
-    if (!isValidEmail(email)) {
-        setFieldState(document.getElementById('loginEmail'), document.getElementById('loginEmailHint'), 'invalid', 'Digite um e-mail válido.');
-        showToast('Digite um e-mail válido.', 'error');
+    if (!isValidUsername(rawName)) {
+        setFieldState(document.getElementById('loginUsername'), document.getElementById('loginUsernameHint'), 'invalid', 'Digite seu nome ou apelido.');
+        showToast('Digite seu nome ou apelido.', 'error');
         return;
     }
 
-    const attemptState = getAttemptState(email);
+    const usernameKey = normalizeUsername(rawName);
+
+    const attemptState = getAttemptState(usernameKey);
     if (attemptState.lockedUntil > Date.now()) {
         const secondsLeft = Math.ceil((attemptState.lockedUntil - Date.now()) / 1000);
         showToast(`Muitas tentativas. Aguarde ${secondsLeft}s antes de tentar novamente.`, 'error');
@@ -354,7 +358,7 @@ async function handleLogin(event) {
 
     try {
         const users = JSON.parse(localStorage.getItem('nvpey_users') || '[]');
-        const user = users.find(u => u.email === email);
+        const user = users.find(u => normalizeUsername(u.name) === usernameKey);
 
         if (!user) {
             showToast('Conta não encontrada. Crie uma conta na aba "Criar Conta".', 'error');
@@ -364,15 +368,14 @@ async function handleLogin(event) {
         const inputHash = await hashPassword(rawPass, user.salt);
 
         if (inputHash === user.passHash) {
-            clearAttempts(email);
+            clearAttempts(usernameKey);
             localStorage.setItem('nvpey_logged_user', JSON.stringify({
-                name: user.name,
-                email: user.email
+                name: user.name
             }));
             showToast('Acesso liberado! Redirecionando...', 'success', 1200);
             setTimeout(() => { window.location.href = 'anotacoes.html'; }, 700);
         } else {
-            const state = registerFailedAttempt(email);
+            const state = registerFailedAttempt(usernameKey);
             if (state.lockedUntil > Date.now()) {
                 showToast(`Muitas tentativas incorretas. Acesso bloqueado por 30 segundos.`, 'error');
             } else {
@@ -393,18 +396,27 @@ async function handleLogin(event) {
 function handleForgot(event) {
     event.preventDefault();
 
-    const email = document.getElementById('forgotEmail').value.trim().toLowerCase();
+    const rawName = document.getElementById('forgotUsername').value;
     const submitBtn = document.getElementById('forgotSubmitBtn');
 
-    if (!isValidEmail(email)) {
-        showToast('Digite um e-mail válido.', 'error');
+    if (!isValidUsername(rawName)) {
+        showToast('Digite seu nome ou apelido.', 'error');
         return;
     }
 
     setButtonLoading(submitBtn, true);
 
     setTimeout(() => {
-        showToast('Se este e-mail estiver cadastrado, as instruções de recuperação seriam enviadas para ele.', 'info', 5500);
+        const users = JSON.parse(localStorage.getItem('nvpey_users') || '[]');
+        const usernameKey = normalizeUsername(rawName);
+        const exists = users.some(u => normalizeUsername(u.name) === usernameKey);
+
+        if (exists) {
+            showToast('Essa conta existe neste dispositivo. Como não usamos e-mail, a senha só pode ser redefinida criando uma nova conta com outro nome ou apagando os dados salvos.', 'info', 6000);
+        } else {
+            showToast('Não encontramos nenhuma conta com esse nome neste dispositivo.', 'error', 5000);
+        }
+
         setButtonLoading(submitBtn, false);
         event.target.reset();
     }, 500);
@@ -414,5 +426,5 @@ function handleForgot(event) {
    INICIALIZAÇÃO
    ========================================================= */
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('loginEmail')?.focus();
+    document.getElementById('loginUsername')?.focus();
 });
